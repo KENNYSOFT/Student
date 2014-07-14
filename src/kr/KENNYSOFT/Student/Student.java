@@ -154,7 +154,14 @@ public class Student extends Activity
 		mFirstRun=mPref.getBoolean("FirstRun",false);
 		mVersionCode=mPref.getInt("VersionCode",0);
 		
-		if(((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().length()>0)phoneNumber="0"+((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().substring(((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().length()-10,((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().length());
+		try
+		{
+			phoneNumber="0"+((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().substring(((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().length()-10,((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().length());
+		}
+		catch(Exception e)
+		{
+			phoneNumber="01000000000";
+		}
 		
 		if(mVersionCode<=12)
 		{

@@ -2,15 +2,23 @@
 <manifest
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	package="kr.KENNYSOFT.Student"
-	android:versionCode="14"
-	android:versionName="1.0.0"
+	android:versionCode="15"
+	android:versionName="1.0.1"
 	android:installLocation="auto" >
 	
 	<uses-sdk
 		android:minSdkVersion="4"
 		android:targetSdkVersion="10" />
 	
+	<uses-feature
+	    android:name="android.hardware.TELEPHONY"
+	    android:required="false" />
+	<uses-feature
+	    android:name="android.hardware.TOUCHSCREEN"
+	    android:required="false" />
+	
 	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
 	<uses-permission android:name="android.permission.READ_SMS" />
 	<uses-permission android:name="android.permission.RECEIVE_SMS" />
