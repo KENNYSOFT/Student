@@ -1,29 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest
-	xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	package="kr.KENNYSOFT.Student"
-	android:versionCode="15"
-	android:versionName="1.0.1"
+	android:versionCode="16"
+	android:versionName="1.1.0"
 	android:installLocation="auto" >
 	
 	<uses-sdk
-		android:minSdkVersion="4"
+		android:minSdkVersion="7"
 		android:targetSdkVersion="10" />
 	
 	<uses-feature
-	    android:name="android.hardware.TELEPHONY"
-	    android:required="false" />
-	<uses-feature
-	    android:name="android.hardware.TOUCHSCREEN"
-	    android:required="false" />
+		android:name="android.hardware.telephony"
+		android:required="false" />
 	
 	<uses-permission android:name="android.permission.INTERNET" />
-	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 	<uses-permission android:name="android.permission.READ_SMS" />
 	<uses-permission android:name="android.permission.RECEIVE_SMS" />
 	<uses-permission android:name="android.permission.WRITE_SMS" />
-	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 	
 	<application
 		android:allowBackup="true"
@@ -38,12 +34,20 @@
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data
+					android:scheme="http"
+					android:host="student.gs.hs.kr" />
+			</intent-filter>
 		</activity>
 		<activity
 			android:name=".Setting"
 			android:label="@string/preference_name"
 			android:parentActivityName=".Student" >
-		    <meta-data
+			<meta-data
 				android:name="android.preference"
 				android:resource="@xml/setting" />
 		</activity>
