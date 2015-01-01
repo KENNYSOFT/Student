@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	android:key="Setting" >
@@ -28,20 +27,8 @@
 		    android:title="@string/preference_useFilter"
 		    android:summary="@string/preference_useFilter_summary"
 		    android:defaultValue="true" />
-		<EditTextPreference
-			android:key="userId"
-			android:title="@string/preference_userId"
-			android:inputType="textVisiblePassword"
-			android:maxLength="30" />
-		<EditTextPreference
-			android:key="pwd"
-			android:title="@string/preference_pwd"
-			android:inputType="textPassword"
-			android:maxLength="30"
-			android:enabled="false" />
-		<CheckBoxPreference
-			android:key="useAutoLogin"
-			android:title="@string/preference_useAutoLogin"
-			android:enabled="false" />
+		<Preference
+		    android:key="account"
+		    android:title="@string/preference_account" />
 	</PreferenceCategory>
 </PreferenceScreen>

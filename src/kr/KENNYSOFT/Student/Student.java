@@ -20,7 +20,6 @@ import org.apache.http.util.EntityUtils;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
@@ -30,7 +29,6 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
-import android.database.Cursor;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -39,6 +37,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.support.v4.view.GravityCompat;
+import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -47,7 +46,10 @@ import android.telephony.TelephonyManager;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
+import android.view.View.OnTouchListener;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.DownloadListener;
@@ -57,7 +59,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -67,12 +68,14 @@ import android.widget.Toast;
 public class Student extends ActionBarActivity
 {
 	ActionBarDrawerToggle mDrawerToggle;
-	boolean mUseZoom,mUseFilter,mUseAutoLogin,mFirstRun,isShowingActionBar,isShowingDrawer,isTitleChanged,isRegistered,isLogined,isExiting;
+	boolean mUseZoom,mUseFilter,mUseAutoLogin,mFirstRun,isDrawerShowing,isRegistered,isLogined,isCleared,isExiting;
 	DrawerLayout mDrawerLayout;
 	int mVersionCode;
 	ListView mDrawerList;
 	ProgressBar progressbar;
+	SharedPreferences mPref;
 	String userId,pwd,phoneNumber;
+	VelocityTracker mVelocityTracker;
 	WebView webview;
 	
 	String[] mNavTitles={"송죽 학사 메인","선생님 검색","학생 검색","학교 홈페이지"};
@@ -82,23 +85,12 @@ public class Student extends ActionBarActivity
 	int[][] mBannerIds={{R.drawable.banner_winter_0,R.drawable.banner_winter_1,R.drawable.banner_winter_2,R.drawable.banner_winter_3,R.drawable.banner_winter_4},{R.drawable.banner_spring_0,R.drawable.banner_spring_1,R.drawable.banner_spring_2,R.drawable.banner_spring_3,R.drawable.banner_spring_4},{R.drawable.banner_summer_0,R.drawable.banner_summer_1,R.drawable.banner_summer_2,R.drawable.banner_summer_3,R.drawable.banner_summer_4},{R.drawable.banner_fall_0,R.drawable.banner_fall_1,R.drawable.banner_fall_2,R.drawable.banner_fall_3,R.drawable.banner_fall_4}};
 	int mBannerPos;
 	
-	public void setAutoLogined()
-	{
-		webview.clearHistory();
-		isLogined=true;
-		((TextView)findViewById(R.id.left_text)).setText(String.format(getString(R.string.drawer_status_2),userId));
-		if(isRegistered)
-		{
-			unregisterReceiver(broadcastReceiver);
-			isRegistered=false;
-		}
-	}
-	
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.student);
 		
+		getSupportActionBar().setElevation(0);
 		getSupportActionBar().setHomeButtonEnabled(true);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 			
@@ -108,18 +100,15 @@ public class Student extends ActionBarActivity
 		{
 			public void onDrawerOpened(View drawerView)
 			{
-				isShowingDrawer=true;
+				isDrawerShowing=true;
 				getSupportActionBar().setTitle(getString(R.string.app_name));
 				getSupportActionBar().setSubtitle(null);
 			}
 			public void onDrawerClosed(View view)
 			{
-				isShowingDrawer=false;
-				if(isTitleChanged)
-				{
-					getSupportActionBar().setTitle(webview.getTitle());
-					getSupportActionBar().setSubtitle(webview.getUrl());
-				}
+				isDrawerShowing=false;
+				getSupportActionBar().setTitle(webview.getTitle());
+				getSupportActionBar().setSubtitle(webview.getUrl());
 				mBannerPos=(mBannerPos+1)%5;
 				findViewById(R.id.left_banner).setBackgroundResource(mBannerIds[((Calendar.getInstance().get(Calendar.MONTH)+1)%12)/3][mBannerPos]);
 			}
@@ -136,7 +125,7 @@ public class Student extends ActionBarActivity
 				else
 				{
 					Toast.makeText(Student.this,getString(R.string.drawer_toast_needs_login),Toast.LENGTH_SHORT).show();
-					if(!webview.getUrl().equals("http://student.gs.hs.kr/student/login.do"))webview.loadUrl("http://student.gs.hs.kr/student/login.do");
+					if(webview.getUrl()!=null&&!webview.getUrl().equals("http://student.gs.hs.kr/student/login.do"))webview.loadUrl("http://student.gs.hs.kr/student/login.do");
 				}
 				mDrawerLayout.closeDrawer(GravityCompat.START);
 			}
@@ -152,7 +141,7 @@ public class Student extends ActionBarActivity
 			}
 		});
 		
-		SharedPreferences mPref=getSharedPreferences("kr.KENNYSOFT.Student_preferences",MODE_PRIVATE);
+		mPref=getSharedPreferences("kr.KENNYSOFT.Student_preferences",MODE_PRIVATE);
 		userId=mPref.getString("userId","");
 		pwd=mPref.getString("pwd","");
 		mUseAutoLogin=mPref.getBoolean("useAutoLogin",false);
@@ -183,10 +172,20 @@ public class Student extends ActionBarActivity
 			catch(Exception e)
 			{
 			}
-			SharedPreferences.Editor edit=getSharedPreferences("kr.KENNYSOFT.Student_preferences",MODE_PRIVATE).edit();
-			edit.putBoolean("pwdChk",pwd.length()>0);
+			pwd=encryptedNewValue;
+			SharedPreferences.Editor edit=mPref.edit();
 			edit.putString("pwd",encryptedNewValue);
 			edit.commit();
+		}
+		
+		if(mVersionCode<=16)
+		{
+			if(userId.length()>0&&pwd.length()>0)
+			{
+				SharedPreferences.Editor edit=mPref.edit();
+				edit.putBoolean("isLogined",true);
+				edit.commit();
+			}
 		}
 		
 		progressbar=(ProgressBar)findViewById(R.id.progress);
@@ -209,7 +208,7 @@ public class Student extends ActionBarActivity
 			public void onProgressChanged(WebView webview,int progress)
 			{
 				progressbar.setProgress(progress);
-				if(progress<100)progressbar.setVisibility(View.VISIBLE);
+				if(progress<progressbar.getMax())progressbar.setVisibility(View.VISIBLE);
 				else progressbar.setVisibility(View.INVISIBLE);
 			}
 		});
@@ -243,93 +242,68 @@ public class Student extends ActionBarActivity
 		{
 			public void onPageFinished(WebView view,String url)
 			{
-				if(!isShowingDrawer)
+				if(isLogined&&!isCleared)
 				{
-					isTitleChanged=true;
+					webview.clearHistory();
+					isCleared=true;
+				}
+				if(!isDrawerShowing)
+				{
 					getSupportActionBar().setTitle(webview.getTitle());
 					getSupportActionBar().setSubtitle(webview.getUrl());
 				}
 				for(int i=0;i<mDrawerList.getCount();++i)
 				{
+					if(mDrawerList.getChildAt(i)==null)continue;
 					if(url.startsWith(mNavLinks[i]))((TextView)mDrawerList.getChildAt(i)).setTypeface(Typeface.DEFAULT_BOLD);
 					else ((TextView)mDrawerList.getChildAt(i)).setTypeface(Typeface.DEFAULT);
 				}
-				if(url.equals("http://student.gs.hs.kr/student/"))((TextView)mDrawerList.getChildAt(0)).setTypeface(Typeface.DEFAULT_BOLD);
+				if(url.equals("http://student.gs.hs.kr/student/")&&mDrawerList.getChildAt(0)!=null)((TextView)mDrawerList.getChildAt(0)).setTypeface(Typeface.DEFAULT_BOLD);
 				if(!isLogined&&(url.equals("http://student.gs.hs.kr/student/")||url.equals("http://student.gs.hs.kr/student/index.do")))
 				{
-					if(getIntent().getAction()=="android.intent.action.VIEW"&&getIntent().getDataString()!=null)webview.loadUrl(getIntent().getDataString());
-					webview.clearHistory();
 					isLogined=true;
-					((TextView)findViewById(R.id.left_text)).setText(getString(R.string.drawer_status_1));
 					if(isRegistered)
 					{
 						unregisterReceiver(broadcastReceiver);
 						isRegistered=false;
 					}
+					if(getIntent().getAction()=="android.intent.action.VIEW"&&getIntent().getDataString()!=null)webview.loadUrl(getIntent().getDataString());
 				}
 				if(url.equals("http://student.gs.hs.kr/student/logout.do"))finish();
 			}
 		});
 		if(mUseAutoLogin)
 		{
+			((TextView)findViewById(R.id.left_text)).setText(getString(R.string.drawer_status_1));
 			if(getIntent().getAction()=="android.intent.action.VIEW")new StudentHttpClient(Student.this,webview,getIntent().getDataString()).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+userId+"&pwd="+pwd+"&mdn="+phoneNumber+"&type=STUD");
 			else new StudentHttpClient(Student.this,webview,null).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+userId+"&pwd="+pwd+"&mdn="+phoneNumber+"&type=STUD");
 		}
 		else webview.loadUrl("http://student.gs.hs.kr/student/login.do");
 		
-		isShowingActionBar=true;
-		webview.postDelayed(new Runnable()
+		findViewById(R.id.cover).setOnTouchListener(new OnTouchListener()
 		{
-			public void run()
+			public boolean onTouch(View v,MotionEvent event)
 			{
-				if(isShowingActionBar)
+				switch(event.getAction()&MotionEvent.ACTION_MASK)
 				{
-					getSupportActionBar().hide();
-					isShowingActionBar=false;
+				case MotionEvent.ACTION_DOWN:
+					if(mVelocityTracker==null)mVelocityTracker=VelocityTracker.obtain();
+					else mVelocityTracker.clear();
+					mVelocityTracker.addMovement(event);
+					break;
+				case MotionEvent.ACTION_MOVE:
+					mVelocityTracker.addMovement(event);
+					mVelocityTracker.computeCurrentVelocity(1000);
+					if(VelocityTrackerCompat.getYVelocity(mVelocityTracker,(event.getAction()&MotionEvent.ACTION_POINTER_ID_MASK)>>MotionEvent.ACTION_POINTER_ID_SHIFT)<-1000)getSupportActionBar().hide();
+					if(VelocityTrackerCompat.getYVelocity(mVelocityTracker,(event.getAction()&MotionEvent.ACTION_POINTER_ID_MASK)>>MotionEvent.ACTION_POINTER_ID_SHIFT)>1000)getSupportActionBar().show();
+					break;
+				case MotionEvent.ACTION_UP:
+					mVelocityTracker.recycle();
+					break;
 				}
-			}
-		},3000);
-		
-		((Button)findViewById(R.id.button)).setOnClickListener(new Button.OnClickListener()
-		{
-			public void onClick(View view)
-			{
-				if(!isShowingActionBar)
-				{
-					getSupportActionBar().show();
-					isShowingActionBar=true;
-					webview.postDelayed(new Runnable()
-					{
-						public void run()
-						{
-							if(isShowingActionBar)
-							{
-								getSupportActionBar().hide();
-								isShowingActionBar=false;
-							}
-						}
-					},3000);
-				}
-				else
-				{
-					if(!isShowingDrawer)
-					{
-						mDrawerLayout.openDrawer(GravityCompat.START);
-						isShowingDrawer=true;
-						webview.postDelayed(new Runnable()
-						{
-							public void run()
-							{
-								if(isShowingDrawer)
-								{
-									mDrawerLayout.closeDrawer(GravityCompat.START);
-									isShowingDrawer=false;
-								}
-							}
-						},3000);
-					}
-				}
-			}
+				webview.onTouchEvent(event);
+				return true;
+			}	
 		});
 		
 		try
@@ -337,9 +311,9 @@ public class Student extends ActionBarActivity
 			final int VersionCode=this.getPackageManager().getPackageInfo(this.getPackageName(),PackageManager.GET_META_DATA).versionCode;
 			if(mVersionCode<VersionCode)
 			{
-				new AlertDialog.Builder(this).setTitle(R.string.preference_update).setMessage(R.string.update).setPositiveButton(R.string.ok,null).show();
+				new AlertDialog.Builder(this).setTitle(R.string.preference_update).setMessage(R.string.update).setPositiveButton(R.string.ok,null).setCancelable(false).show();
 				mVersionCode=VersionCode;
-				SharedPreferences.Editor edit=getSharedPreferences("kr.KENNYSOFT.Student_preferences",MODE_PRIVATE).edit();
+				SharedPreferences.Editor edit=mPref.edit();
 				edit.putInt("VersionCode",mVersionCode);
 				edit.commit();
 			}
@@ -358,10 +332,12 @@ public class Student extends ActionBarActivity
 					{
 						public void onClick(DialogInterface dialog,int whichButton)
 						{
-							startActivity(new Intent(Student.this,Setting.class));
+							startActivity(new Intent(Student.this,Account.class));
 						}
-					}).show();
-					getSharedPreferences("kr.KENNYSOFT.Student_preferences",MODE_PRIVATE).edit().putBoolean("FirstRun",true).commit();
+					}).setCancelable(false).show();
+					SharedPreferences.Editor edit=mPref.edit();
+					edit.putBoolean("FirstRun",true);
+					edit.commit();
 				}
 			}).setNegativeButton(R.string.first_disagree,new OnClickListener()
 			{
@@ -369,7 +345,7 @@ public class Student extends ActionBarActivity
 				{
 					finish();
 				}
-			}).show();
+			}).setCancelable(false).show();
 		}
 		
 		IntentFilter intentFilter=new IntentFilter("android.provider.Telephony.SMS_RECEIVED");
@@ -378,25 +354,11 @@ public class Student extends ActionBarActivity
 		isRegistered=true;
 	}
 	
-	protected void onPostCreate(Bundle savedInstanceState)
-	{
-		super.onPostCreate(savedInstanceState);
-		mDrawerToggle.syncState();
-	}
-	
-	public void onConfigurationChanged(Configuration newConfig)
-	{
-		super.onConfigurationChanged(newConfig);
-		invalidateOptionsMenu();
-		mDrawerToggle.onConfigurationChanged(newConfig);
-	}
-	
 	public void onResume()
 	{
 		boolean mUseAutoLoginBACKUP=mUseAutoLogin;
 		String userIdBACKUP=userId,pwdBACKUP=pwd;
 		super.onResume();
-		SharedPreferences mPref=getSharedPreferences("kr.KENNYSOFT.Student_preferences",MODE_PRIVATE);
 		mUseZoom=mPref.getBoolean("useZoom",false);
 		webview.getSettings().setBuiltInZoomControls(mUseZoom);
 		if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.HONEYCOMB)webview.getSettings().setDisplayZoomControls(false);
@@ -404,7 +366,11 @@ public class Student extends ActionBarActivity
 		userId=mPref.getString("userId","");
 		pwd=mPref.getString("pwd","");
 		mUseAutoLogin=mPref.getBoolean("useAutoLogin",false);
-		if(!isLogined&&((!mUseAutoLoginBACKUP&&mUseAutoLogin)||(mUseAutoLogin&&!userIdBACKUP.equals(userId))||(mUseAutoLogin&&!pwdBACKUP.equals(pwd))))new StudentHttpClient(Student.this,webview,null).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+userId+"&pwd="+pwd+"&mdn="+phoneNumber+"&type=STUD");
+		if(!isLogined&&((!mUseAutoLoginBACKUP&&mUseAutoLogin)||(mUseAutoLogin&&!userIdBACKUP.equals(userId))||(mUseAutoLogin&&!pwdBACKUP.equals(pwd))))
+		{
+			((TextView)findViewById(R.id.left_text)).setText(getString(R.string.drawer_status_1));
+			new StudentHttpClient(Student.this,webview,null).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+userId+"&pwd="+pwd+"&mdn="+phoneNumber+"&type=STUD");
+		}
 	}
 	
 	public void onDestroy()
@@ -420,9 +386,10 @@ public class Student extends ActionBarActivity
 
 	public boolean onKeyDown(int keyCode,KeyEvent event)
 	{
-		if(keyCode==KeyEvent.KEYCODE_BACK)
+		switch(keyCode)
 		{
-			if(isShowingDrawer||isShowingActionBar||webview.canGoBack())return true;
+		case KeyEvent.KEYCODE_BACK:
+			if(isDrawerShowing||webview.canGoBack())return true;
 			else
 			{
 				if(!isExiting)
@@ -440,63 +407,20 @@ public class Student extends ActionBarActivity
 				else finish();
 				return true;
 			}
+		default:
+			return super.onKeyDown(keyCode,event);
 		}
-		else return super.onKeyDown(keyCode,event);
 	}
 	
 	public boolean onKeyUp(int keyCode,KeyEvent event)
 	{
-		if(keyCode==KeyEvent.KEYCODE_MENU)
+		switch(keyCode)
 		{
-			if(!isShowingActionBar)
-			{
-				getSupportActionBar().show();
-				isShowingActionBar=true;
-				webview.postDelayed(new Runnable()
-				{
-					public void run()
-					{
-						if(isShowingActionBar)
-						{
-							getSupportActionBar().hide();
-							isShowingActionBar=false;
-						}
-					}
-				},3000);
-			}
-			else
-			{
-				if(!isShowingDrawer)
-				{
-					mDrawerLayout.openDrawer(GravityCompat.START);
-					isShowingDrawer=true;
-					webview.postDelayed(new Runnable()
-					{
-						public void run()
-						{
-							if(isShowingDrawer)
-							{
-								mDrawerLayout.closeDrawer(GravityCompat.START);
-								isShowingDrawer=false;
-							}
-						}
-					},3000);
-				}
-			}
-			return true;
-		}
-		else if(keyCode==KeyEvent.KEYCODE_BACK)
-		{
-			if(isShowingDrawer)
+		case KeyEvent.KEYCODE_BACK:
+			if(isDrawerShowing)
 			{
 				mDrawerLayout.closeDrawer(GravityCompat.START);
-				isShowingDrawer=false;
-				return true;
-			}
-			else if(isShowingActionBar)
-			{
-				getSupportActionBar().hide();
-				isShowingActionBar=false;
+				isDrawerShowing=false;
 				return true;
 			}
 			else if(webview.canGoBack())
@@ -505,88 +429,23 @@ public class Student extends ActionBarActivity
 				return true;
 			}
 			else return super.onKeyDown(keyCode,event);
-		}
-		else return super.onKeyDown(keyCode,event);
-	}
-	
-	private void setRead(String address,String body)
-	{
-		int cnt=0;
-		try
-		{
-			Cursor cursor=getContentResolver().query(Uri.parse("content://sms/inbox"),null,null,null,null);
-			while(cursor.moveToNext())
-			{
-				if(cnt++>10)break;
-				if(cursor.getString(cursor.getColumnIndex("address")).equals(address)&&cursor.getString(cursor.getColumnIndex("body")).equals(body)&&cursor.getInt(cursor.getColumnIndex("read"))==0)
-				{
-					String SmsMessageId=cursor.getString(cursor.getColumnIndex("_id"));
-					ContentValues values=new ContentValues();
-					values.put("read",true);
-					getContentResolver().update(Uri.parse("content://sms/inbox"),values,"_id="+SmsMessageId,null);
-					break;
-				}
-			}
-			cursor.close();
-		}
-		catch(Exception e)
-		{
+		default:
+			return super.onKeyDown(keyCode,event);
 		}
 	}
 	
-	BroadcastReceiver broadcastReceiver=new BroadcastReceiver()
+	protected void onPostCreate(Bundle savedInstanceState)
 	{
-		public void onReceive(Context context,Intent intent)
-		{
-			Bundle extras=intent.getExtras();
-			if(extras==null)return;
-			
-			Object[] pdus=(Object[])extras.get("pdus");
-			if(pdus==null)return;
-			
-			SmsMessage[] msgs=new SmsMessage[pdus.length];
-			
-			for(int i=0;i<pdus.length;i++)
-			{
-				msgs[i]=SmsMessage.createFromPdu((byte[])pdus[i]);
-				
-				String address=msgs[i].getOriginatingAddress();
-				if(mUseFilter&&!address.equals("0312590420"))continue;
-				
-				String body=msgs[i].getDisplayMessageBody();
-				switch(body.length())
-				{
-				case 41:
-					if(!body.substring(0,12).equals("[송죽][외부접근코드]"))continue;
-					break;
-				case 49:
-					if(!body.substring(0,20).equals("[Web발신]\n[송죽][외부접근코드]"))continue;
-					break;
-				default:
-					continue;
-				}
-				
-				setRead(address,body);
-				abortBroadcast();
-				
-				if(Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT)
-				{
-					webview.loadUrl("javascript:document.getElementById('accessCode').value='"+body.substring(27,32)+"';");
-					webview.loadUrl("javascript:document.getElementsByClassName('btn btn-large btn-primary')[0].click();");
-				}
-				else
-				{
-					webview.evaluateJavascript("document.getElementById('accessCode').value='"+body.substring(27,32)+"';",null);
-					webview.evaluateJavascript("document.getElementsByClassName('btn btn-large btn-primary')[0].click();",null);
-				}
-				
-				unregisterReceiver(broadcastReceiver);
-				isRegistered=false;
-				
-				return;
-			}
-		}
-	};
+		super.onPostCreate(savedInstanceState);
+		mDrawerToggle.syncState();
+	}
+	
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		super.onConfigurationChanged(newConfig);
+		invalidateOptionsMenu();
+		mDrawerToggle.onConfigurationChanged(newConfig);
+	}
 	
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
@@ -612,6 +471,72 @@ public class Student extends ActionBarActivity
 			return super.onOptionsItemSelected(item);
 		}
 	}
+	
+	public void setAutoLogined()
+	{
+		isLogined=true;
+		webview.clearHistory();
+		((TextView)findViewById(R.id.left_text)).setText(String.format(getString(R.string.drawer_status_2),userId));
+		if(isRegistered)
+		{
+			unregisterReceiver(broadcastReceiver);
+			isRegistered=false;
+		}
+	}
+	
+	BroadcastReceiver broadcastReceiver=new BroadcastReceiver()
+	{
+		public void onReceive(Context context,Intent intent)
+		{
+			Bundle extras=intent.getExtras();
+			if(extras==null)return;
+			
+			Object[] pdus=(Object[])extras.get("pdus");
+			if(pdus==null)return;
+			
+			SmsMessage[] msgs=new SmsMessage[pdus.length];
+			
+			for(int i=0;i<pdus.length;i++)
+			{
+				msgs[i]=SmsMessage.createFromPdu((byte[])pdus[i]);
+				
+				final String address=msgs[i].getOriginatingAddress();
+				if(mUseFilter&&!address.equals("0312590420"))continue;
+				
+				final String body=msgs[i].getDisplayMessageBody();
+				String accessCode=null;
+				switch(body.length())
+				{
+				case 32:
+					if(!body.substring(0,5).equals("[송죽]["))continue;
+					accessCode=body.substring(5,10);
+					break;
+				case 40:
+					if(!body.substring(0,13).equals("[Web발신]\n[송죽]["))continue;
+					accessCode=body.substring(13,18);
+					break;
+				default:
+					continue;
+				}
+				
+				if(Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT)
+				{
+					webview.loadUrl("javascript:document.getElementById('accessCode').value='"+accessCode+"';");
+					webview.loadUrl("javascript:document.getElementsByClassName('btn btn-large btn-primary')[0].click();");
+				}
+				else
+				{
+					webview.evaluateJavascript("document.getElementById('accessCode').value='"+accessCode+"';",null);
+					webview.evaluateJavascript("document.getElementsByClassName('btn btn-large btn-primary')[0].click();",null);
+				}
+				
+				unregisterReceiver(broadcastReceiver);
+				isRegistered=false;
+				
+				return;
+			}
+		}
+	};
 }
 
 @SuppressWarnings("deprecation")
@@ -659,13 +584,19 @@ class StudentHttpClient extends AsyncTask<String,Void,HttpResponse>
 			}
 			else if(html.contains("error"))
 			{
+				SharedPreferences.Editor edit=((Student)context).mPref.edit();
+				edit.putString("userId","");
+				edit.putString("pwd","");
+				edit.putBoolean("useAutoLogin",false);
+				edit.putBoolean("isLogined",false);
+				edit.commit();
 				new AlertDialog.Builder(context).setTitle(context.getString(R.string.login_error)).setMessage(html.substring(html.indexOf("message\":")+10,html.length()-9)).setPositiveButton(android.R.string.ok,new OnClickListener()
 				{
 					public void onClick(DialogInterface dialog,int whichButton)
 					{
-						context.startActivity(new Intent(context,Setting.class));
+						context.startActivity(new Intent(context,Account.class));
 					}
-				}).setCancelable(false).create().show();
+				}).setCancelable(false).show();
 				webview.loadUrl("http://student.gs.hs.kr/student/login.do");
 			}
 			else
@@ -676,7 +607,7 @@ class StudentHttpClient extends AsyncTask<String,Void,HttpResponse>
 					{
 						context.startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
 					}
-				}).setCancelable(false).create().show();
+				}).setCancelable(false).show();
 			}
 		}
 		catch(Exception e)

@@ -11,16 +11,16 @@
 			android:id="@+id/webview"
 			android:layout_width="match_parent"
 			android:layout_height="match_parent" />
+		<View
+			android:id="@+id/cover"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent" />
 		<ProgressBar
 			android:id="@+id/progress"
 			android:layout_width="match_parent"
 			android:layout_height="4dip"
+			android:max="100"
 			style="?android:attr/progressBarStyleHorizontal" />
-		<Button
-			android:id="@+id/button"
-			android:layout_width="match_parent"
-			android:layout_height="16dip"
-			android:background="#00000000" />
 	</FrameLayout>
 	<RelativeLayout
 		android:id="@+id/left_drawer"

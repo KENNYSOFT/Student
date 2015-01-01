@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="app_name">송죽 학사</string>
-	<string name="full_name">송죽 학사 v1.1.0 [16]</string>
+	<string name="app_name">송죽 학사 </string>
+	<string name="full_name">송죽 학사 v1.2.0 [17]</string>
 	<string name="preference_name">설정</string>
-	<string name="copyright">Copyright ⓒ 2013-2014 by KENNYSOFT. All Rights Reserved.</string>
+	<string name="account_name">계정</string>
+	<string name="copyright">Copyright ⓒ 2013-2015 by KENNYSOFT. All Rights Reserved.</string>
 	
 	<string name="ok">확인</string>
 	<string name="cancel">취소</string>
@@ -20,8 +21,8 @@
 	<string name="menu_setting">설정</string>
 	<string name="menu_exit">종료</string>
 	
-	<string name="drawer_status_0">로그인되지 않음</string>
-	<string name="drawer_status_1">수동 로그인됨</string>
+	<string name="drawer_status_0">자동 로그인을 사용하지 않음</string>
+	<string name="drawer_status_1">로그인되지 않음</string>
 	<string name="drawer_status_2">%s 계정으로 자동 로그인됨</string>
 	<string name="drawer_open">네비게이션 드로어 열기</string>
 	<string name="drawer_close">네비게이션 드로어 닫기</string>
@@ -38,16 +39,24 @@
 	<string name="preference_useZoom_summary">웹사이트의 확대/축소 콘트롤 요청 무시</string>
 	<string name="preference_useFilter">발신 번호 필터 사용</string>
 	<string name="preference_useFilter_summary">학교 번호에서 발신된 인증 메시지만 인식</string>
-	<string name="preference_userId">아이디</string>
-	<string name="preference_pwd">비밀번호</string>
-	<string name="preference_useAutoLogin">자동 로그인 사용</string>
-	<string name="preference_useAutoLogin_summary">%s 계정으로 자동 로그인 사용</string>
+	<string name="preference_account">계정</string>
+	
+	<string name="account_userId">아이디</string>
+	<string name="account_pwd">비밀번호</string>
+	<string name="account_login">로그인</string>
+	<string name="account_logout">로그아웃</string>
+	<string name="account_useAutoLogin">자동 로그인 사용</string>
+	<string name="account_useAutoLogin_summary">%s 계정으로 자동 로그인</string>
+	
+	<string name="contact_teacher">교사</string>
+	<string name="contact_grade">학년</string>
+	<string name="contact_class">반</string>
 	
 	<string name="first_title">환영합니다!</string>
 	<string name="first_message">
 	<b>학교 내외에서의 송죽 학사 접근을 쉽고 빠르게!</b>\n\n
 	KENNYSOFT의 \"송죽 학사\" 앱은 계정 정보 기억 및 자동 로그인과 외부 접속시 인증 메시지 자동 입력을 지원하여 학교 내외에서 경기과학고등학교 송죽 학사 시스템을 간편하게 이용할 수 있도록 도와드립니다.\n\n
-	이 앱은 GPL 라이선스 하에 배포되며, <b>메시지 받기, 읽기, 쓰기</b>, <b>SD 카드의 콘텐츠 수정 또는 삭제</b>, <b>휴대전화 상태 및 ID 읽기</b> 및 <b>인터넷 접속</b> 권한을 가지고 있습니다. 이 앱의 사용에 동의하신다면 동의 버튼을 눌러주세요. 거부 버튼을 누를 시 이 앱이 종료됩니다.
+	이 앱은 <b>메시지 받기, 읽기, 쓰기</b>, <b>SD 카드의 콘텐츠 수정 또는 삭제</b>, <b>휴대전화 상태 및 ID 읽기</b> 및 <b>인터넷 접속</b> 권한을 가지고 있으며, 모든 소스 코드는 GitHub에서 GPL 라이선스 하에 배포되고 있습니다. 이 앱의 사용에 동의하신다면 동의 버튼을 눌러주세요.
 	</string>
 	<string name="first_agree">동의</string>
 	<string name="first_disagree">거부</string>
@@ -55,25 +64,35 @@
 	<string name="second_title">감사합니다!</string>
 	<string name="second_message">
 	<b>설치해 주셔서 감사합니다!</b>\n\n
-	계정 정보 기억 및 자동 입력을 위해서는 설정에서 <b>아아디</b>와 <b>비밀번호</b>를 입력해 주세요.\n\n
-	Copyright ⓒ 2013-2014 by KENNYSOFT. All Rights Reserved.
+	계정 정보 기억 및 자동 로그인을 위해서는 다음 화면에서 <b>아아디</b>와 <b>비밀번호</b>를 설정해 주세요.\n\n
+	Copyright ⓒ 2013-2015 by KENNYSOFT. All Rights Reserved.
 	</string>
 	
 	<string name="information">
 	<b>학교 내외에서의 송죽 학사 접근을 쉽고 빠르게!</b>\n\n
 	KENNYSOFT의 \"송죽 학사\" 앱은 계정 정보 기억 및 자동 로그인과 외부 접속시 인증 메시지 자동 입력을 지원하여 학교 내외에서 경기과학고등학교 송죽 학사 시스템을 간편하게 이용할 수 있도록 도와드립니다.\n\n
-	Copyright ⓒ 2013-2014 by KENNYSOFT. All Rights Reserved.
+	Copyright ⓒ 2013-2015 by KENNYSOFT. All Rights Reserved.
 	</string>
 	
 	<string name="update">
+	<b>v1.2.0</b> [17] <i>(15.01.01)</i>\n
+	* 태블릿을 공식적으로 지원하는 최초 릴리즈입니다.\n
+	* 액션 버튼의 디자인을 가이드라인에 맞도록 변경하였습니다.\n
+	* [MENU] 버튼을 더 이상 사용하지 않도록 변경하였습니다.\n
+	* 액션바가 나타나고 사라지는 방법을 변경하였습니다.\n
+	&#160;&#160;# 화면을 위, 아래로 스크롤하면 각각 액션바가 나타나고, 사라집니다.\n
+	* 설정 화면에 액션바를 다시 추가하였습니다.\n
+	* 계정 설정 화면을 추가하였습니다.\n
+	* 인증 메시지 형식 변경으로 인식이 불가능했던 오류를 수정하였습니다.\n
+	* 인증 메시지 자동 읽음 확인 기능을 제거하였습니다.\n\n
 	<b>v1.1.0</b> [16] <i>(14.11.03)</i>\n
 	* Android 5.0 스타일의 Material 디자인을 사용하도록 변경하였습니다.\n
 	* 링크를 클릭했을 때 바로 어플리케이션을 실행하는 기능을 추가하였습니다.\n
 	* 액션바의 정보 버튼을 새로고침 버튼으로 변경하였습니다.\n
-	* 인증 메시지 수신시 [Web발신] 등의 키워드도 감지할 수 있도록 변경하였습니다.\n
+	* 인증 메시지 수신시 [Web발신] 키워드를 감지할 수 있도록 변경하였습니다.\n
 	* 로그인 시도시 네트워크 부분에서 오류가 발생하는 경우의 처리를 개선하였습니다.\n
 	* 설정 화면에서 액션바를 제거하였습니다.\n
-	* Support Library 사용을 위해 요구 API 레벨을 7(Android 2.1)으로 변경하였습니다.\n
+	* Support Library 사용을 위해 최소 지원 버전을 Android 2.1으로 변경하였습니다.\n
 	* [Android 2.3-] 실행시 강제 종료되던 오류를 수정하였습니다.\n
 	* [Android 2.3-] 액션바를 사용할 수 있도록 개선하였습니다.\n\n
 	<b>v1.0.1</b> [15] <i>(14.07.14)</i>\n

@@ -3,5 +3,6 @@
 	<style
 		name="app_theme"
 		parent="@style/Theme.AppCompat.Light.DarkActionBar" >
+		<item name="android:windowContentOverlay">@null</item>
 	</style>
 </resources>

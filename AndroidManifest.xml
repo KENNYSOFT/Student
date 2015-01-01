@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	package="kr.KENNYSOFT.Student"
-	android:versionCode="16"
-	android:versionName="1.1.0"
+	android:versionCode="17"
+	android:versionName="1.2.0"
 	android:installLocation="auto" >
 	
 	<uses-sdk
 		android:minSdkVersion="7"
-		android:targetSdkVersion="10" />
+		android:targetSdkVersion="21" />
 	
 	<uses-feature
 		android:name="android.hardware.telephony"
@@ -15,11 +15,16 @@
 	
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
-	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 	<uses-permission android:name="android.permission.READ_SMS" />
 	<uses-permission android:name="android.permission.RECEIVE_SMS" />
-	<uses-permission android:name="android.permission.WRITE_SMS" />
+	<uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
+	<uses-permission android:name="android.permission.GET_ACCOUNTS" />
+	<uses-permission android:name="android.permission.MANAGE_ACCOUNTS" />
+	<uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
+	<uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+	<uses-permission android:name="android.permission.READ_CONTACTS" />
+	<uses-permission android:name="android.permission.WRITE_CONTACTS" />
 	
 	<application
 		android:allowBackup="true"
@@ -45,11 +50,25 @@
 		</activity>
 		<activity
 			android:name=".Setting"
-			android:label="@string/preference_name"
-			android:parentActivityName=".Student" >
+			android:label="@string/preference_name" >
 			<meta-data
 				android:name="android.preference"
 				android:resource="@xml/setting" />
+			<intent-filter>
+				<action android:name="kr.KENNYSOFT.Student.ACCOUNT_SETUP" />
+				<category android:name="android.intent.category.DEFAULT" />
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".Account"
+			android:label="@string/account_name" >
+			<meta-data
+				android:name="android.preference"
+				android:resource="@xml/account" />
+			<intent-filter>
+				<action android:name="kr.KENNYSOFT.Student.ACCOUNT_LOGIN" />
+				<category android:name="android.intent.category.DEFAULT" />
+			</intent-filter>
 		</activity>
 	</application>
 </manifest>

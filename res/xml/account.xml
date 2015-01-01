@@ -1,0 +1,20 @@
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:key="Account" >
+	<EditTextPreference
+		android:key="userId"
+		android:title="@string/account_userId"
+		android:inputType="textVisiblePassword"
+		android:maxLength="30" />
+	<EditTextPreference
+		android:key="pwd"
+		android:title="@string/account_pwd"
+		android:inputType="textPassword"
+		android:maxLength="30" />
+	<Preference
+		android:key="login"
+		android:title="@string/account_login" />
+	<CheckBoxPreference 
+	    android:key="useAutoLogin"
+	    android:title="@string/account_useAutoLogin" />
+</PreferenceScreen>
