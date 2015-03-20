@@ -37,8 +37,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.support.v4.view.GravityCompat;
-import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.telephony.SmsMessage;
@@ -49,7 +49,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
-import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.DownloadListener;
@@ -75,6 +75,7 @@ public class Student extends ActionBarActivity
 	ProgressBar progressbar;
 	SharedPreferences mPref;
 	String userId,pwd,phoneNumber;
+	SwipeRefreshLayout mSwipeRefreshLayout;
 	VelocityTracker mVelocityTracker;
 	WebView webview;
 	
@@ -157,7 +158,7 @@ public class Student extends ActionBarActivity
 			phoneNumber="01000000000";
 		}
 		
-		if(mVersionCode<=12)
+		if(mVersionCode<=12&&pwd.length()>0)
 		{
 			String encryptedNewValue=null;
 			try
@@ -242,6 +243,7 @@ public class Student extends ActionBarActivity
 		{
 			public void onPageFinished(WebView view,String url)
 			{
+				mSwipeRefreshLayout.setRefreshing(false);
 				if(isLogined&&!isCleared)
 				{
 					webview.clearHistory();
@@ -280,7 +282,7 @@ public class Student extends ActionBarActivity
 		}
 		else webview.loadUrl("http://student.gs.hs.kr/student/login.do");
 		
-		findViewById(R.id.cover).setOnTouchListener(new OnTouchListener()
+		findViewById(R.id.cover).setOnTouchListener(new ViewGroup.OnTouchListener()
 		{
 			public boolean onTouch(View v,MotionEvent event)
 			{
@@ -294,16 +296,26 @@ public class Student extends ActionBarActivity
 				case MotionEvent.ACTION_MOVE:
 					mVelocityTracker.addMovement(event);
 					mVelocityTracker.computeCurrentVelocity(1000);
-					if(VelocityTrackerCompat.getYVelocity(mVelocityTracker,(event.getAction()&MotionEvent.ACTION_POINTER_ID_MASK)>>MotionEvent.ACTION_POINTER_ID_SHIFT)<-1000)getSupportActionBar().hide();
-					if(VelocityTrackerCompat.getYVelocity(mVelocityTracker,(event.getAction()&MotionEvent.ACTION_POINTER_ID_MASK)>>MotionEvent.ACTION_POINTER_ID_SHIFT)>1000)getSupportActionBar().show();
+					if(mVelocityTracker.getYVelocity((event.getAction()&MotionEvent.ACTION_POINTER_ID_MASK)>>MotionEvent.ACTION_POINTER_ID_SHIFT)<-1000)getSupportActionBar().hide();
+					if(mVelocityTracker.getYVelocity((event.getAction()&MotionEvent.ACTION_POINTER_ID_MASK)>>MotionEvent.ACTION_POINTER_ID_SHIFT)>1000)getSupportActionBar().show();
 					break;
 				case MotionEvent.ACTION_UP:
 					mVelocityTracker.recycle();
 					break;
 				}
-				webview.onTouchEvent(event);
+				mSwipeRefreshLayout.dispatchTouchEvent(event);
 				return true;
 			}	
+		});
+		
+		mSwipeRefreshLayout=(SwipeRefreshLayout)findViewById(R.id.swiperefresh);
+		mSwipeRefreshLayout.setColorSchemeResources(android.R.color.holo_blue_light,android.R.color.holo_green_light,android.R.color.holo_orange_light,android.R.color.holo_red_light);
+		mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener()
+		{
+			public void onRefresh()
+			{
+				webview.reload();
+			}
 		});
 		
 		try

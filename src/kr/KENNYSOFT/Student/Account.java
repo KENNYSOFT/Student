@@ -196,6 +196,7 @@ public class Account extends PreferenceActivity
 	};
 }
 
+@SuppressWarnings("deprecation")
 class AccountHttpClient extends AsyncTask<String,Void,HttpResponse>
 {
 	Context context;
