@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">송죽 학사 </string>
-	<string name="full_name">송죽 학사 v1.2.5 [18]</string>
+	<string name="full_name">송죽 학사 v1.2.8 [19]</string>
 	<string name="preference_name">설정</string>
 	<string name="account_name">계정</string>
 	<string name="copyright">Copyright ⓒ 2013-2015 by KENNYSOFT. All Rights Reserved.</string>
@@ -75,6 +75,11 @@
 	</string>
 	
 	<string name="update">
+	<b>v1.2.8</b> [19] <i>(15.03.21)</i>\n
+	* 네비게이션 드로어의 디자인을 변경하였습니다.\n
+	* 네비게이션 드로어가 스크롤된 상태일 경우 발생하던 오류를 수정하였습니다.\n
+	* 새로고침 버튼을 제거하였습니다.\n
+	* [Android 2.1-] VelocityTracker에서 발생하던 오류를 수정하였습니다.\n\n
 	<b>v1.2.5</b> [18] <i>(15.03.20)</i>\n
 	* Android 5.1 지원을 추가하였습니다.\n
 	* Support Library v22를 사용하도록 변경하였습니다.\n

@@ -4,6 +4,8 @@ import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.security.KeyFactory;
 import java.security.spec.RSAPublicKeySpec;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -29,6 +31,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -37,6 +41,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.support.v4.view.GravityCompat;
+import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
@@ -57,8 +62,12 @@ import android.webkit.MimeTypeMap;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -68,7 +77,7 @@ import android.widget.Toast;
 public class Student extends ActionBarActivity
 {
 	ActionBarDrawerToggle mDrawerToggle;
-	boolean mUseZoom,mUseFilter,mUseAutoLogin,mFirstRun,isDrawerShowing,isRegistered,isLogined,isCleared,isExiting;
+	boolean mUseZoom,mUseFilter,mUseAutoLogin,mFirstRun,isDrawerShowing,isDrawerAppended,isRegistered,isLogined,isCleared,isExiting;
 	DrawerLayout mDrawerLayout;
 	int mVersionCode;
 	ListView mDrawerList;
@@ -79,9 +88,11 @@ public class Student extends ActionBarActivity
 	VelocityTracker mVelocityTracker;
 	WebView webview;
 	
-	String[] mNavTitles={"송죽 학사 메인","선생님 검색","학생 검색","학교 홈페이지"};
-	String[] mNavLinks={"http://student.gs.hs.kr/student/index.do","http://student.gs.hs.kr/student/searchTeacher.do","http://student.gs.hs.kr/student/searchStudent.do","http://gs.hs.kr"};
-	boolean[] mNavNeeds={true,true,true,false};
+	ArrayList<String> mNavTitles=new ArrayList<String>(Arrays.asList("송죽 학사 메인","교사 검색","학생 검색","학교 홈페이지"));
+	ArrayList<String> mNavIcons=new ArrayList<String>(Arrays.asList("home","search","search","globe"));
+	ArrayList<String> mNavLinks=new ArrayList<String>(Arrays.asList("http://student.gs.hs.kr/student/index.do","http://student.gs.hs.kr/student/searchTeacher.do","http://student.gs.hs.kr/student/searchStudent.do","http://gs.hs.kr"));
+	ArrayList<Boolean> mNavNeeds=new ArrayList<Boolean>(Arrays.asList(true,true,true,false));
+	ArrayAdapter<String> mDrawerAdapter;
 	
 	int[][] mBannerIds={{R.drawable.banner_winter_0,R.drawable.banner_winter_1,R.drawable.banner_winter_2,R.drawable.banner_winter_3,R.drawable.banner_winter_4},{R.drawable.banner_spring_0,R.drawable.banner_spring_1,R.drawable.banner_spring_2,R.drawable.banner_spring_3,R.drawable.banner_spring_4},{R.drawable.banner_summer_0,R.drawable.banner_summer_1,R.drawable.banner_summer_2,R.drawable.banner_summer_3,R.drawable.banner_summer_4},{R.drawable.banner_fall_0,R.drawable.banner_fall_1,R.drawable.banner_fall_2,R.drawable.banner_fall_3,R.drawable.banner_fall_4}};
 	int mBannerPos;
@@ -94,9 +105,8 @@ public class Student extends ActionBarActivity
 		getSupportActionBar().setElevation(0);
 		getSupportActionBar().setHomeButtonEnabled(true);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-			
+		
 		mDrawerLayout=(DrawerLayout)findViewById(R.id.drawer_layout);
-		mDrawerList=(ListView)findViewById(R.id.left_list);
 		mDrawerToggle=new ActionBarDrawerToggle(this,mDrawerLayout,R.string.drawer_open,R.string.drawer_close)
 		{
 			public void onDrawerOpened(View drawerView)
@@ -114,21 +124,34 @@ public class Student extends ActionBarActivity
 				findViewById(R.id.left_banner).setBackgroundResource(mBannerIds[((Calendar.getInstance().get(Calendar.MONTH)+1)%12)/3][mBannerPos]);
 			}
 		};
-		
-		mDrawerLayout.setDrawerShadow(R.drawable.drawer_shadow,GravityCompat.START);
 		mDrawerLayout.setDrawerListener(mDrawerToggle);
-		mDrawerList.setAdapter(new ArrayAdapter<String>(this,R.layout.listitem,mNavTitles));
-		mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener()
+		mDrawerLayout.setDrawerShadow(R.drawable.drawer_shadow,GravityCompat.START);
+		mDrawerAdapter=new ArrayAdapter<String>(this,R.layout.listitem,R.id.listitem_title,mNavTitles);
+		mDrawerList=(ListView)findViewById(R.id.left_list);
+		mDrawerList.setAdapter(mDrawerAdapter);
+		mDrawerList.setOnItemClickListener(new OnItemClickListener()
 		{
 			public void onItemClick(AdapterView<?> parent,View view,int position,long id)
 			{
-				if(isLogined||!mNavNeeds[(int)id])webview.loadUrl(mNavLinks[position]);
+				if(isLogined||!mNavNeeds.get(position))webview.loadUrl(mNavLinks.get(position));
 				else
 				{
 					Toast.makeText(Student.this,getString(R.string.drawer_toast_needs_login),Toast.LENGTH_SHORT).show();
 					if(webview.getUrl()!=null&&!webview.getUrl().equals("http://student.gs.hs.kr/student/login.do"))webview.loadUrl("http://student.gs.hs.kr/student/login.do");
 				}
+				updateListView(mDrawerList);
 				mDrawerLayout.closeDrawer(GravityCompat.START);
+			}
+		});
+		mDrawerList.setOnScrollListener(new AbsListView.OnScrollListener()
+		{
+			public void onScroll(AbsListView view,int firstVisibleItem,int visibleItemCount,int totalItemCount)
+			{
+				updateListView(mDrawerList);
+			}
+			
+			public void onScrollStateChanged(AbsListView view,int scrollState)
+			{	
 			}
 		});
 		
@@ -193,10 +216,10 @@ public class Student extends ActionBarActivity
 		
 		webview=(WebView)findViewById(R.id.webview);
 		webview.getSettings().setSavePassword(false);
-		webview.getSettings().setJavaScriptEnabled(true);
 		webview.getSettings().setDomStorageEnabled(true);
 		webview.getSettings().setDatabaseEnabled(true);
 		webview.getSettings().setDatabasePath(this.getApplicationContext().getDir("database",Context.MODE_PRIVATE).getPath());
+		webview.getSettings().setJavaScriptEnabled(true);
 		try
 		{
 			webview.getSettings().setUserAgentString(webview.getSettings().getUserAgentString()+" Student/"+this.getPackageManager().getPackageInfo(this.getPackageName(),PackageManager.GET_META_DATA).versionName);
@@ -241,9 +264,14 @@ public class Student extends ActionBarActivity
 		});
 		webview.setWebViewClient(new WebViewClient()
 		{
+			public void onPageStarted(WebView view,String url,Bitmap favicon)
+			{
+				if(url.equals("http://student.gs.hs.kr/student/logout.do"))finish();
+			}
+			
 			public void onPageFinished(WebView view,String url)
 			{
-				mSwipeRefreshLayout.setRefreshing(false);
+				if(mSwipeRefreshLayout.isRefreshing())mSwipeRefreshLayout.setRefreshing(false);
 				if(isLogined&&!isCleared)
 				{
 					webview.clearHistory();
@@ -254,13 +282,6 @@ public class Student extends ActionBarActivity
 					getSupportActionBar().setTitle(webview.getTitle());
 					getSupportActionBar().setSubtitle(webview.getUrl());
 				}
-				for(int i=0;i<mDrawerList.getCount();++i)
-				{
-					if(mDrawerList.getChildAt(i)==null)continue;
-					if(url.startsWith(mNavLinks[i]))((TextView)mDrawerList.getChildAt(i)).setTypeface(Typeface.DEFAULT_BOLD);
-					else ((TextView)mDrawerList.getChildAt(i)).setTypeface(Typeface.DEFAULT);
-				}
-				if(url.equals("http://student.gs.hs.kr/student/")&&mDrawerList.getChildAt(0)!=null)((TextView)mDrawerList.getChildAt(0)).setTypeface(Typeface.DEFAULT_BOLD);
 				if(!isLogined&&(url.equals("http://student.gs.hs.kr/student/")||url.equals("http://student.gs.hs.kr/student/index.do")))
 				{
 					isLogined=true;
@@ -271,7 +292,6 @@ public class Student extends ActionBarActivity
 					}
 					if(getIntent().getAction()=="android.intent.action.VIEW"&&getIntent().getDataString()!=null)webview.loadUrl(getIntent().getDataString());
 				}
-				if(url.equals("http://student.gs.hs.kr/student/logout.do"))finish();
 			}
 		});
 		if(mUseAutoLogin)
@@ -281,6 +301,16 @@ public class Student extends ActionBarActivity
 			else new StudentHttpClient(Student.this,webview,null).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+userId+"&pwd="+pwd+"&mdn="+phoneNumber+"&type=STUD");
 		}
 		else webview.loadUrl("http://student.gs.hs.kr/student/login.do");
+		
+		mSwipeRefreshLayout=(SwipeRefreshLayout)findViewById(R.id.swiperefresh);
+		mSwipeRefreshLayout.setColorSchemeResources(android.R.color.holo_blue_light,android.R.color.holo_green_light,android.R.color.holo_orange_light,android.R.color.holo_red_light);
+		mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener()
+		{
+			public void onRefresh()
+			{
+				webview.reload();
+			}
+		});
 		
 		findViewById(R.id.cover).setOnTouchListener(new ViewGroup.OnTouchListener()
 		{
@@ -296,8 +326,8 @@ public class Student extends ActionBarActivity
 				case MotionEvent.ACTION_MOVE:
 					mVelocityTracker.addMovement(event);
 					mVelocityTracker.computeCurrentVelocity(1000);
-					if(mVelocityTracker.getYVelocity((event.getAction()&MotionEvent.ACTION_POINTER_ID_MASK)>>MotionEvent.ACTION_POINTER_ID_SHIFT)<-1000)getSupportActionBar().hide();
-					if(mVelocityTracker.getYVelocity((event.getAction()&MotionEvent.ACTION_POINTER_ID_MASK)>>MotionEvent.ACTION_POINTER_ID_SHIFT)>1000)getSupportActionBar().show();
+					if(VelocityTrackerCompat.getYVelocity(mVelocityTracker,(event.getAction()&MotionEvent.ACTION_POINTER_INDEX_MASK)>>MotionEvent.ACTION_POINTER_INDEX_SHIFT)<-1000)getSupportActionBar().hide();
+					if(VelocityTrackerCompat.getYVelocity(mVelocityTracker,(event.getAction()&MotionEvent.ACTION_POINTER_INDEX_MASK)>>MotionEvent.ACTION_POINTER_INDEX_SHIFT)>1000)getSupportActionBar().show();
 					break;
 				case MotionEvent.ACTION_UP:
 					mVelocityTracker.recycle();
@@ -306,16 +336,6 @@ public class Student extends ActionBarActivity
 				mSwipeRefreshLayout.dispatchTouchEvent(event);
 				return true;
 			}	
-		});
-		
-		mSwipeRefreshLayout=(SwipeRefreshLayout)findViewById(R.id.swiperefresh);
-		mSwipeRefreshLayout.setColorSchemeResources(android.R.color.holo_blue_light,android.R.color.holo_green_light,android.R.color.holo_orange_light,android.R.color.holo_red_light);
-		mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener()
-		{
-			public void onRefresh()
-			{
-				webview.reload();
-			}
 		});
 		
 		try
@@ -470,9 +490,6 @@ public class Student extends ActionBarActivity
 		if(mDrawerToggle.onOptionsItemSelected(item))return true;
 		switch(item.getItemId())
 		{
-		case R.id.action_refresh:
-			webview.reload();
-			return true;
 		case R.id.action_setting:
 			startActivity(new Intent(this,Setting.class));
 			return true;
@@ -493,6 +510,37 @@ public class Student extends ActionBarActivity
 		{
 			unregisterReceiver(broadcastReceiver);
 			isRegistered=false;
+		}
+	}
+	
+	public void updateListView(ListView listview)
+	{
+		try
+		{
+			int firstVisibleItem=mDrawerList.getFirstVisiblePosition(),visibleItemCount=mDrawerList.getLastVisiblePosition()-mDrawerList.getFirstVisiblePosition()+1;
+			for(int i=0;i<visibleItemCount;++i)
+			{
+				if(mNavIcons.get(firstVisibleItem+i).length()>0)((ImageView)((LinearLayout)listview.getChildAt(i)).getChildAt(0)).setImageResource(getResources().getIdentifier("drawable/glyphicons_"+mNavIcons.get(firstVisibleItem+i),null,getPackageName()));
+				else ((ImageView)((LinearLayout)listview.getChildAt(i)).getChildAt(0)).setImageResource(android.R.color.transparent);
+				if(webview.getUrl().startsWith(mNavLinks.get(firstVisibleItem+i)))
+				{
+					listview.getChildAt(i).setBackgroundColor(Color.parseColor("#FFD0D0D0"));
+					((TextView)((LinearLayout)listview.getChildAt(i)).getChildAt(1)).setTypeface(Typeface.DEFAULT_BOLD);
+				}
+				else
+				{
+					listview.getChildAt(i).setBackgroundColor(Color.parseColor("#00FFFFFF"));
+					((TextView)((LinearLayout)listview.getChildAt(i)).getChildAt(1)).setTypeface(Typeface.DEFAULT);
+				}
+			}
+			if(firstVisibleItem==0&&webview.getUrl().equals("http://student.gs.hs.kr/student/"))
+			{
+				listview.getChildAt(0).setBackgroundColor(Color.parseColor("#FFD0D0D0"));
+				((TextView)((LinearLayout)listview.getChildAt(0)).getChildAt(1)).setTypeface(Typeface.DEFAULT_BOLD);
+			}
+		}
+		catch(NullPointerException e)
+		{
 		}
 	}
 	

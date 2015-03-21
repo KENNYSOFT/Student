@@ -8,9 +8,9 @@
 		android:layout_width="match_parent"
 		android:layout_height="match_parent" >
 		<android.support.v4.widget.SwipeRefreshLayout
-		    android:id="@+id/swiperefresh"
-		    android:layout_width="match_parent"
-		    android:layout_height="match_parent" >
+			android:id="@+id/swiperefresh"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent" >
 			<WebView
 				android:id="@+id/webview"
 				android:layout_width="match_parent"
@@ -53,6 +53,8 @@
 			android:layout_above="@id/left_text"
 			android:layout_width="match_parent"
 			android:layout_height="match_parent"
-			android:choiceMode="singleChoice" />
+			android:cacheColorHint="#FFFFFFFF"
+			android:choiceMode="singleChoice"
+			android:divider="@null" />
 	</RelativeLayout>
 </android.support.v4.widget.DrawerLayout>
