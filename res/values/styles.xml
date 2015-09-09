@@ -2,7 +2,68 @@
 <resources>
 	<style
 		name="app_theme"
-		parent="@style/Theme.AppCompat.Light.DarkActionBar" >
-		<item name="android:windowContentOverlay">@null</item>
+		parent="Theme.AppCompat.Light.NoActionBar" >
+		<item name="colorPrimary">@color/color_primary</item>
+		<item name="colorPrimaryDark">@color/color_primary_dark</item>
+	</style>
+	<style
+		name="preference_theme"
+		parent="Theme.AppCompat.Light" >
+		<item name="colorPrimary">@color/color_primary</item>
+		<item name="colorPrimaryDark">@color/color_primary_dark</item>
+		<item name="preferenceTheme">@style/preferenceThemeOverlay.Compat</item>
+	</style>
+	<style
+		name="preferenceThemeOverlay.Compat"
+		parent="@style/PreferenceThemeOverlay" >
+		<item name="preferenceScreenStyle">@style/Preference.PreferenceScreen.Compat</item>
+		<item name="preferenceCategoryStyle">@style/Preference.Category.Compat</item>
+		<item name="preferenceStyle">@style/Preference.Compat</item>
+		<item name="preferenceInformationStyle">@style/Preference.Information.Compat</item>
+		<item name="checkBoxPreferenceStyle">@style/Preference.CheckBoxPreference.Compat</item>
+		<item name="switchPreferenceCompatStyle">@style/Preference.SwitchPreferenceCompat.Compat</item>
+		<item name="switchPreferenceStyle">@style/Preference.SwitchPreference.Compat</item>
+		<item name="dialogPreferenceStyle">@style/Preference.DialogPreference.Compat</item>
+		<item name="editTextPreferenceStyle">@style/Preference.DialogPreference.EditTextPreference.Compat</item>
+		<item name="preferenceFragmentListStyle">@style/PreferenceFragmentList</item>
+	</style>
+	<style name="Preference.Category.Compat">
+		<item name="layout">@layout/preference_category_compat</item>
+	</style>
+	<style name="Preference.CheckBoxPreference.Compat">
+		<item name="layout">@layout/preference_compat</item>
+	</style>
+	<style name="Preference.DialogPreference.EditTextPreference.Compat">
+		<item name="layout">@layout/preference_compat</item>
+	</style>
+	<style name="Preference.DialogPreference.Compat">
+		<item name="layout">@layout/preference_compat</item>
+	</style>
+	<style name="Preference.Information.Compat">
+		<item name="layout">@layout/preference_information_compat</item>
+		<item name="enabled">false</item>
+		<item name="shouldDisableView">false</item>
+	</style>
+	<style name="Preference.Compat">
+		<item name="layout">@layout/preference_compat</item>
+	</style>
+	<style name="Preference.PreferenceScreen.Compat">
+		<item name="layout">@layout/preference_compat</item>
+	</style>
+	<style name="Preference.SwitchPreference">
+		<item name="widgetLayout">@layout/preference_widget_switch_compat</item>
+		<item name="switchTextOn">@string/v7_preference_on</item>
+		<item name="switchTextOff">@string/v7_preference_off</item>
+	</style>
+	<style name="Preference.SwitchPreference.Compat">
+		<item name="layout">@layout/preference_compat</item>
+	</style>
+	<style name="Preference.SwitchPreferenceCompat.Compat">
+		<item name="layout">@layout/preference_compat</item>
+	</style>
+	<style name="Preference_TextAppearanceMaterialBody2">
+		<item name="android:textSize">14sp</item>
+		<item name="android:fontFamily">sans-serif-medium</item>
+		<item name="android:textColor">?android:attr/textColorPrimary</item>
 	</style>
 </resources>

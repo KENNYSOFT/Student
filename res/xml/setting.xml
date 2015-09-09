@@ -1,6 +1,6 @@
 <PreferenceScreen
 	xmlns:android="http://schemas.android.com/apk/res/android"
-	android:key="Setting" >
+	android:key="setting" >
 	<PreferenceCategory
 		android:key="information"
 		android:title="@string/preference_information" >
@@ -9,26 +9,40 @@
 			android:title="@string/full_name"
 			android:summary="@string/copyright" />
 		<Preference
-		    android:key="update"
-		    android:title="@string/preference_update" />
-		<Preference 
+			android:key="opensource"
+			android:title="@string/preference_opensource" />
+		<Preference
+			android:key="update"
+			android:title="@string/preference_update" />
+		<Preference
 			android:key="link"
-			android:title="@string/preference_link" />
+			android:title="@string/preference_link" >
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="market://details?id=kr.KENNYSOFT.Student" />
+		</Preference>
 	</PreferenceCategory>
 	<PreferenceCategory
 		android:key="setting"
 		android:title="@string/preference_setting" >
-		<CheckBoxPreference
-		    android:key="useZoom"
-		    android:title="@string/preference_useZoom"
-		    android:summary="@string/preference_useZoom_summary" />
-		<CheckBoxPreference
-		    android:key="useFilter"
-		    android:title="@string/preference_useFilter"
-		    android:summary="@string/preference_useFilter_summary"
-		    android:defaultValue="true" />
 		<Preference
-		    android:key="account"
-		    android:title="@string/preference_account" />
+			android:key="account"
+			android:title="@string/preference_account" >
+			<intent
+				android:action="kr.KENNYSOFT.Student.Action.ACCOUNT" />
+		</Preference>
+		<android.support.v7.preference.SwitchPreferenceCompat
+			android:key="useZoom"
+			android:title="@string/preference_useZoom"
+			android:summary="@string/preference_useZoom_summary" />
+		<android.support.v7.preference.SwitchPreferenceCompat
+			android:key="useFilter"
+			android:title="@string/preference_useFilter"
+			android:summary="@string/preference_useFilter_summary"
+			android:defaultValue="true" />
+		<Preference
+			android:key="restore"
+			android:title="@string/preference_restore"
+			android:summary="@string/preference_restore_summary" />
 	</PreferenceCategory>
 </PreferenceScreen>

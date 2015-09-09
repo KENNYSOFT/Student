@@ -1,0 +1,9 @@
+<PreferenceScreen
+	xmlns:android="http://schemas.android.com/apk/res/android" >
+	<PreferenceScreen
+		android:key="setting"
+		android:title="@string/setting_name" >
+		<intent
+			android:action="kr.KENNYSOFT.Student.Action.SETTING" />
+	</PreferenceScreen>
+</PreferenceScreen>

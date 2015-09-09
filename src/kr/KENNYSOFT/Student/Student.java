@@ -1,30 +1,38 @@
 package kr.KENNYSOFT.Student;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.security.KeyFactory;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.crypto.Cipher;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.cookie.Cookie;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.util.EntityUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
-import android.app.AlertDialog;
+import com.hudomju.swipe.OnItemClickListener;
+import com.hudomju.swipe.SwipeToDismissTouchListener;
+import com.hudomju.swipe.SwipeableItemClickListener;
+import com.hudomju.swipe.adapter.RecyclerViewAdapter;
+
+import android.accounts.AccountManager;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -32,156 +40,306 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.Color;
-import android.graphics.Typeface;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.v4.view.GravityCompat;
-import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v4.widget.NestedScrollView;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.telephony.SmsMessage;
 import android.telephony.TelephonyManager;
+import android.util.TypedValue;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
-import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
-import android.webkit.CookieSyncManager;
 import android.webkit.DownloadListener;
 import android.webkit.MimeTypeMap;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.AbsListView;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 @SuppressWarnings("deprecation")
-public class Student extends ActionBarActivity
+public class Student extends AppCompatActivity
 {
-	ActionBarDrawerToggle mDrawerToggle;
-	boolean mUseZoom,mUseFilter,mUseAutoLogin,mFirstRun,isDrawerShowing,isDrawerAppended,isRegistered,isLogined,isCleared,isExiting;
-	DrawerLayout mDrawerLayout;
-	int mVersionCode;
-	ListView mDrawerList;
-	ProgressBar progressbar;
+	boolean mUseZoom,mUseFilter,mUseAutoLogin,mFirstRun,isDrawerShowing,isDrawerAdded,isRegistered,isLogined,isQuiting;
+	int mVersionCode,mToolbarHeight,mNowFolder;
+	NestedScrollView mNestedScrollView;
+	ProgressBar mProgressBar;
 	SharedPreferences mPref;
-	String userId,pwd,phoneNumber;
-	SwipeRefreshLayout mSwipeRefreshLayout;
-	VelocityTracker mVelocityTracker;
-	WebView webview;
+	TextView mToolbarTitle,mToolbarSubtitle;
+	Toolbar mToolbar;
+	String mUserId,mPwd,mPhoneNumber;
+	WebView mWebView;
 	
-	ArrayList<String> mNavTitles=new ArrayList<String>(Arrays.asList("송죽 학사 메인","교사 검색","학생 검색","학교 홈페이지"));
-	ArrayList<String> mNavIcons=new ArrayList<String>(Arrays.asList("home","search","search","globe"));
-	ArrayList<String> mNavLinks=new ArrayList<String>(Arrays.asList("http://student.gs.hs.kr/student/index.do","http://student.gs.hs.kr/student/searchTeacher.do","http://student.gs.hs.kr/student/searchStudent.do","http://gs.hs.kr"));
-	ArrayList<Boolean> mNavNeeds=new ArrayList<Boolean>(Arrays.asList(true,true,true,false));
-	ArrayAdapter<String> mDrawerAdapter;
+	ActionBarDrawerToggle mDrawerToggle;
+	ArrayList<StudentMenuItemList> mDrawerFolder;
+	DrawerLayout mDrawerLayout;
+	StudentMenuItemAdapter mDrawerAdapter;
+	SwipeToDismissTouchListener<RecyclerViewAdapter> mSwipeToDismissTouchListener;
+	RecyclerView mDrawerList;
 	
-	int[][] mBannerIds={{R.drawable.banner_winter_0,R.drawable.banner_winter_1,R.drawable.banner_winter_2,R.drawable.banner_winter_3,R.drawable.banner_winter_4},{R.drawable.banner_spring_0,R.drawable.banner_spring_1,R.drawable.banner_spring_2,R.drawable.banner_spring_3,R.drawable.banner_spring_4},{R.drawable.banner_summer_0,R.drawable.banner_summer_1,R.drawable.banner_summer_2,R.drawable.banner_summer_3,R.drawable.banner_summer_4},{R.drawable.banner_fall_0,R.drawable.banner_fall_1,R.drawable.banner_fall_2,R.drawable.banner_fall_3,R.drawable.banner_fall_4}};
-	int mBannerPos;
-	
-	public void onCreate(Bundle savedInstanceState)
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.student);
 		
-		getSupportActionBar().setElevation(0);
+		mToolbar=(Toolbar)findViewById(R.id.toolbar);
+		setSupportActionBar(mToolbar);
 		getSupportActionBar().setHomeButtonEnabled(true);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+		
+		mToolbarTitle=(TextView)findViewById(R.id.toolbar_title);
+		mToolbarSubtitle=(TextView)findViewById(R.id.toolbar_subtitle);
+		mToolbarTitle.setSelected(true);
+		mToolbarSubtitle.setSelected(true);
+		
+		findViewById(R.id.toolbar_information).setOnClickListener(new View.OnClickListener()
+		{
+			public void onClick(View v)
+			{
+				new AlertDialog.Builder(Student.this).setTitle(mWebView.getTitle()).setMessage(mWebView.getUrl()).setNeutralButton(getString(R.string.action_copy),new DialogInterface.OnClickListener()
+				{
+					public void onClick(DialogInterface dialog,int which)
+					{
+						((ClipboardManager)Student.this.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(android.content.ClipData.newPlainText("Student",mWebView.getUrl()));
+					}
+				}).setPositiveButton(R.string.ok,null).show();
+			}
+		});
 		
 		mDrawerLayout=(DrawerLayout)findViewById(R.id.drawer_layout);
 		mDrawerToggle=new ActionBarDrawerToggle(this,mDrawerLayout,R.string.drawer_open,R.string.drawer_close)
 		{
+			@Override
 			public void onDrawerOpened(View drawerView)
 			{
+				mDrawerAdapter.notifyDataSetChanged();
 				isDrawerShowing=true;
-				getSupportActionBar().setTitle(getString(R.string.app_name));
-				getSupportActionBar().setSubtitle(null);
 			}
+			
+			@Override
 			public void onDrawerClosed(View view)
 			{
+				mSwipeToDismissTouchListener.processPendingDismisses();
+				mDrawerAdapter.notifyDataSetChanged();
+				mDrawerAdapter.setHeaderNext();
 				isDrawerShowing=false;
-				getSupportActionBar().setTitle(webview.getTitle());
-				getSupportActionBar().setSubtitle(webview.getUrl());
-				mBannerPos=(mBannerPos+1)%5;
-				findViewById(R.id.left_banner).setBackgroundResource(mBannerIds[((Calendar.getInstance().get(Calendar.MONTH)+1)%12)/3][mBannerPos]);
 			}
 		};
 		mDrawerLayout.setDrawerListener(mDrawerToggle);
 		mDrawerLayout.setDrawerShadow(R.drawable.drawer_shadow,GravityCompat.START);
-		mDrawerAdapter=new ArrayAdapter<String>(this,R.layout.listitem,R.id.listitem_title,mNavTitles);
-		mDrawerList=(ListView)findViewById(R.id.left_list);
+		mDrawerAdapter=new StudentMenuItemAdapter(this);
+		mDrawerAdapter.add(new StudentMenuItem(true,false,0,"송죽 학사 메인","home","http://student.gs.hs.kr/student/index.do",""));
+		mDrawerAdapter.add(new StudentMenuItem(true,false,0,"교사 검색","search","http://student.gs.hs.kr/student/searchTeacher.do",""));
+		mDrawerAdapter.add(new StudentMenuItem(true,false,0,"학생 검색","search","http://student.gs.hs.kr/student/searchStudent.do",""));
+		mDrawerAdapter.add(new StudentMenuItem(false,false,0,"학교 홈페이지","globe","http://gs.hs.kr",""));
+		mDrawerFolder=new ArrayList<StudentMenuItemList>();
+		mDrawerList=(RecyclerView)findViewById(R.id.left_list);
+		mDrawerList.setLayoutManager(new LinearLayoutManager(this));
 		mDrawerList.setAdapter(mDrawerAdapter);
-		mDrawerList.setOnItemClickListener(new OnItemClickListener()
+		mDrawerList.addOnItemTouchListener(new SwipeableItemClickListener(this,new OnItemClickListener()
 		{
-			public void onItemClick(AdapterView<?> parent,View view,int position,long id)
+			public void onItemClick(View view,int position)
 			{
-				if(isLogined||!mNavNeeds.get(position))webview.loadUrl(mNavLinks.get(position));
-				else
+				if(position==0)mDrawerAdapter.setHeaderNext();
+				else if(position<=mDrawerAdapter.getItemCount()-2)
 				{
-					Toast.makeText(Student.this,getString(R.string.drawer_toast_needs_login),Toast.LENGTH_SHORT).show();
-					if(webview.getUrl()!=null&&!webview.getUrl().equals("http://student.gs.hs.kr/student/login.do"))webview.loadUrl("http://student.gs.hs.kr/student/login.do");
+					position--;
+					switch(view.getId())
+					{
+					case R.id.toast_undo:
+						mSwipeToDismissTouchListener.undoPendingDismiss();
+						break;
+					case R.id.list_item:
+					case R.id.list_item_icon:
+					case R.id.list_item_title:
+						if(mSwipeToDismissTouchListener.processPendingDismisses())break;
+						if(mDrawerAdapter.get(position).Link.length()>0)
+						{
+							if(isLogined||!mDrawerAdapter.get(position).isLoginNeeded)mWebView.loadUrl(mDrawerAdapter.get(position).Link);
+							else
+							{
+								Toast.makeText(Student.this,getString(R.string.drawer_login_needed),Toast.LENGTH_SHORT).show();
+								if(mWebView.getUrl()!=null&&!mWebView.getUrl().equals("http://student.gs.hs.kr/student/login.do"))mWebView.loadUrl("http://student.gs.hs.kr/student/login.do");
+							}
+							mDrawerAdapter.notifyItemChanged(position);
+							mDrawerLayout.closeDrawer(GravityCompat.START);
+						}
+						else
+						{
+							if(!mDrawerAdapter.get(position).isExpanded)
+							{
+								int added=0;
+								for(int i=0;i<mDrawerFolder.get(mDrawerAdapter.get(position).FolderId-1).size();++i)if(mDrawerAdapter.addToIndex(position+1+added,mDrawerFolder.get(mDrawerAdapter.get(position).FolderId-1).get(i)))added++;
+								mDrawerAdapter.setExpanded(position);
+							}
+							else
+							{
+								while(mDrawerAdapter.getItemCount()-2>position+1&&mDrawerAdapter.get(position+1).FolderId==mDrawerAdapter.get(position).FolderId)mDrawerAdapter.remove(position+1);
+								mDrawerAdapter.setCollapsed(position);
+							}
+						}
+						break;
+					}
 				}
-				updateListView(mDrawerList);
-				mDrawerLayout.closeDrawer(GravityCompat.START);
 			}
-		});
-		mDrawerList.setOnScrollListener(new AbsListView.OnScrollListener()
+		}));
+		mDrawerList.setOnTouchListener(mSwipeToDismissTouchListener=new SwipeToDismissTouchListener<RecyclerViewAdapter>(new RecyclerViewAdapter(mDrawerList),new SwipeToDismissTouchListener.DismissCallbacks<RecyclerViewAdapter>()
 		{
-			public void onScroll(AbsListView view,int firstVisibleItem,int visibleItemCount,int totalItemCount)
+			public boolean canDismiss(int position)
 			{
-				updateListView(mDrawerList);
+				if(position==0||position==mDrawerAdapter.getItemCount()-1)return false;
+				else return !mDrawerAdapter.get(position-1).isExpanded;
 			}
 			
-			public void onScrollStateChanged(AbsListView view,int scrollState)
-			{	
-			}
-		});
-		
-		findViewById(R.id.left_banner).setBackgroundResource(mBannerIds[((Calendar.getInstance().get(Calendar.MONTH)+1)%12)/3][mBannerPos]);
-		findViewById(R.id.left_banner).setOnClickListener(new View.OnClickListener()
-		{
-			public void onClick(View v)
+			public void onDismiss(RecyclerViewAdapter recyclerView,int position)
 			{
-				mBannerPos=(mBannerPos+1)%5;
-				findViewById(R.id.left_banner).setBackgroundResource(mBannerIds[((Calendar.getInstance().get(Calendar.MONTH)+1)%12)/3][mBannerPos]);
+				int now=mPref.getInt("deletedMenuCnt",0);
+				SharedPreferences.Editor edit=mPref.edit();
+				edit.putString("deletedMenu"+now,mDrawerAdapter.remove(position-1).toString());
+				edit.putInt("deletedMenuCnt",now+1);
+				edit.commit();
+			}
+		}));
+		mDrawerList.setOnScrollListener((RecyclerView.OnScrollListener)mSwipeToDismissTouchListener.makeScrollListener());
+		
+		mProgressBar=(ProgressBar)findViewById(R.id.progressbar);
+		
+		mNestedScrollView=(NestedScrollView)findViewById(R.id.nestedscrollview);
+		
+		mWebView=(WebView)findViewById(R.id.webview);
+		mWebView.getSettings().setSavePassword(false);
+		mWebView.getSettings().setDomStorageEnabled(true);
+		mWebView.getSettings().setDatabaseEnabled(true);
+		mWebView.getSettings().setDatabasePath(this.getApplicationContext().getDir("database",Context.MODE_PRIVATE).getPath());
+		mWebView.getSettings().setJavaScriptEnabled(true);
+		try
+		{
+			mWebView.getSettings().setUserAgentString(mWebView.getSettings().getUserAgentString()+" Student/"+this.getPackageManager().getPackageInfo(this.getPackageName(),PackageManager.GET_META_DATA).versionName);
+		}
+		catch(Exception e)
+		{
+		}
+		mWebView.setWebChromeClient(new WebChromeClient()
+		{
+			@Override
+			public void onProgressChanged(WebView webview,int progress)
+			{
+				if(progress<mProgressBar.getMax())mProgressBar.setProgress(progress);
+				else mProgressBar.setProgress(0);
+			}
+		});
+		mWebView.setDownloadListener(new DownloadListener()
+		{
+			public void onDownloadStart(String url,String userAgent,String contentDisposition,String mimetype,long contentLength)
+			{
+				if(url.equals("http://student.gs.hs.kr/student/css/fonts/NanumGothic.ttf"))Toast.makeText(Student.this,getString(R.string.download_pc_only),Toast.LENGTH_SHORT).show();
+				else
+				{
+					try
+					{
+						String fileName=URLDecoder.decode(contentDisposition.substring(20,contentDisposition.length()),"UTF-8").replace("+"," "),mimeType=null;
+						Toast.makeText(Student.this,getString(R.string.download_starting),Toast.LENGTH_SHORT).show();
+						if(fileName.substring(fileName.lastIndexOf(".")+1).toLowerCase(Locale.getDefault()).equals("hwp"))mimeType="application/x-hwp";
+						else mimeType=MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileName.substring(fileName.lastIndexOf(".")+1).toLowerCase(Locale.getDefault()));
+						((DownloadManager)Student.this.getSystemService(Context.DOWNLOAD_SERVICE)).enqueue(new DownloadManager.Request(Uri.parse(url)).addRequestHeader("Cookie",CookieManager.getInstance().getCookie("http://student.gs.hs.kr/student/index.do")).setDescription(getString(R.string.app_name)).setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,fileName).setMimeType(mimeType).setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED));
+					}
+					catch(Exception e)
+					{
+					}
+				}
+			}
+		});
+		mWebView.setWebViewClient(new WebViewClient()
+		{
+			@Override
+			public void onPageStarted(WebView view,String url,Bitmap favicon)
+			{
+				mDrawerAdapter.notifyDataSetChanged();
+				if(url.equals("http://student.gs.hs.kr/student/"))view.loadUrl("http://student.gs.hs.kr/student/index.do");
+				if(url.equals("http://student.gs.hs.kr/student/logout.do"))finish();
+			}
+			
+			@Override
+			public void onPageFinished(WebView view,String url)
+			{
+				mNestedScrollView.scrollTo(0,0);
+				mToolbarTitle.setText(mWebView.getTitle());
+				mToolbarSubtitle.setVisibility(View.VISIBLE);
+				mToolbarSubtitle.setText(mWebView.getUrl());
+				if(!isLogined&&(url.equals("http://student.gs.hs.kr/student/")||url.equals("http://student.gs.hs.kr/student/index.do")))
+				{
+					isLogined=true;
+					mWebView.clearHistory();
+					if(isRegistered)
+					{
+						unregisterReceiver(broadcastReceiver);
+						isRegistered=false;
+					}
+					new StudentURLConnection(Student.this,StudentURLConnection.TYPE_LEFTMENU).execute("http://student.gs.hs.kr/student/index.do");
+					if(getIntent().getAction()=="android.intent.action.VIEW"&&getIntent().getDataString()!=null)mWebView.loadUrl(getIntent().getDataString());
+				}
+				if(url.startsWith("http://student.gs.hs.kr/student/well/myGoodsList.do")||url.startsWith("http://student.gs.hs.kr/student/well/goodsInfo.do")||url.startsWith("http://student.gs.hs.kr/student/well/goodsUse.do"))
+				{
+					if(Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT)mWebView.loadUrl("javascript:layerPopup=function layerPopup(url,title){window.location.href=url;}");
+					else mWebView.evaluateJavascript("layerPopup=function layerPopup(url,title){window.location.href=url;}",null);
+				}
+				if(Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT)
+				{
+					mWebView.loadUrl("javascript:$('html, body').stop();");
+					mWebView.loadUrl("javascript:document.getElementsByClassName('navbar navbar-inverse navbar-fixed-top')[0].parentNode.removeChild(document.getElementsByClassName('navbar navbar-inverse navbar-fixed-top')[0]);");
+					mWebView.loadUrl("javascript:document.body.style.paddingTop='0px';");
+					mWebView.loadUrl("javascript:document.getElementsByClassName('span3 bs-docs-sidebar')[0].parentNode.removeChild(document.getElementsByClassName('span3 bs-docs-sidebar')[0]);");
+				}
+				else
+				{
+					mWebView.evaluateJavascript("$('html, body').stop();",null);
+					mWebView.evaluateJavascript("document.getElementsByClassName('navbar navbar-inverse navbar-fixed-top')[0].parentNode.removeChild(document.getElementsByClassName('navbar navbar-inverse navbar-fixed-top')[0]);",null);
+					mWebView.evaluateJavascript("document.body.style.paddingTop='0px';",null);
+					mWebView.evaluateJavascript("document.getElementsByClassName('span3 bs-docs-sidebar')[0].parentNode.removeChild(document.getElementsByClassName('span3 bs-docs-sidebar')[0]);",null);
+				}
 			}
 		});
 		
-		mPref=getSharedPreferences("kr.KENNYSOFT.Student_preferences",MODE_PRIVATE);
-		userId=mPref.getString("userId","");
-		pwd=mPref.getString("pwd","");
+		mPref=PreferenceManager.getDefaultSharedPreferences(this);
+		mUserId=mPref.getString("userId","");
+		mPwd=mPref.getString("pwd","");
 		mUseAutoLogin=mPref.getBoolean("useAutoLogin",false);
 		mFirstRun=mPref.getBoolean("FirstRun",false);
 		mVersionCode=mPref.getInt("VersionCode",0);
 		
 		try
 		{
-			phoneNumber="0"+((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().substring(((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().length()-10,((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().length());
+			mPhoneNumber="0"+((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().substring(((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().length()-10,((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE)).getLine1Number().length());
 		}
 		catch(Exception e)
 		{
-			phoneNumber="01000000000";
+			mPhoneNumber="01000000000";
 		}
 		
-		if(mVersionCode<=12&&pwd.length()>0)
+		if(mVersionCode<13&&mPwd.length()>0)
 		{
 			String encryptedNewValue=null;
 			try
@@ -190,153 +348,26 @@ public class Student extends ActionBarActivity
 				cipher.init(Cipher.ENCRYPT_MODE,KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(new BigInteger("a84f535e7f4531973c4f966e2f0cac1594057ce2618bb7031ec46933638e03f6b8d08e2ef0a18d61605b13347f8648c2729596683dec96efb17c74635a4a3a0a71410ba42bdfcba51051e6213f7110926c16d4f40d570e4cc9d96a380a48d84a4aba9feffcf86f26434e20b55076eed4a8fcd67af3266f4453ec7cd72e47d127",16),new BigInteger("10001",16))));
 				do
 				{
-					encryptedNewValue=new BigInteger(cipher.doFinal(pwd.getBytes())).toString(16);
+					encryptedNewValue=new BigInteger(cipher.doFinal(mPwd.getBytes())).toString(16);
 				}while(encryptedNewValue.getBytes()[0]=='-');
 			}
 			catch(Exception e)
 			{
 			}
-			pwd=encryptedNewValue;
+			mPwd=encryptedNewValue;
 			SharedPreferences.Editor edit=mPref.edit();
 			edit.putString("pwd",encryptedNewValue);
 			edit.commit();
 		}
 		
-		if(mVersionCode<=16)
+		if(mVersionCode<17&&mUserId.length()>0&&mPwd.length()>0)
 		{
-			if(userId.length()>0&&pwd.length()>0)
-			{
-				SharedPreferences.Editor edit=mPref.edit();
-				edit.putBoolean("isLogined",true);
-				edit.commit();
-			}
+			SharedPreferences.Editor edit=mPref.edit();
+			edit.putBoolean("isLogined",true);
+			edit.commit();
 		}
 		
-		progressbar=(ProgressBar)findViewById(R.id.progress);
-		
-		webview=(WebView)findViewById(R.id.webview);
-		webview.getSettings().setSavePassword(false);
-		webview.getSettings().setDomStorageEnabled(true);
-		webview.getSettings().setDatabaseEnabled(true);
-		webview.getSettings().setDatabasePath(this.getApplicationContext().getDir("database",Context.MODE_PRIVATE).getPath());
-		webview.getSettings().setJavaScriptEnabled(true);
-		try
-		{
-			webview.getSettings().setUserAgentString(webview.getSettings().getUserAgentString()+" Student/"+this.getPackageManager().getPackageInfo(this.getPackageName(),PackageManager.GET_META_DATA).versionName);
-		}
-		catch(Exception e)
-		{
-		}
-		webview.setWebChromeClient(new WebChromeClient()
-		{
-			public void onProgressChanged(WebView webview,int progress)
-			{
-				progressbar.setProgress(progress);
-				if(progress<progressbar.getMax())progressbar.setVisibility(View.VISIBLE);
-				else progressbar.setVisibility(View.INVISIBLE);
-			}
-		});
-		webview.setDownloadListener(new DownloadListener()
-		{
-			public void onDownloadStart(String url,String userAgent,String contentDisposition,String mimetype,long contentLength)
-			{
-				if(url.equals("http://student.gs.hs.kr/student/css/fonts/NanumGothic.ttf"))Toast.makeText(Student.this,getString(R.string.download_pc_only),Toast.LENGTH_SHORT).show();
-				else
-				{
-					if(Build.VERSION.SDK_INT<Build.VERSION_CODES.GINGERBREAD)Toast.makeText(Student.this,getString(R.string.download_unavailable),Toast.LENGTH_SHORT).show();
-					else
-					{
-						try
-						{
-							String fileName=URLDecoder.decode(contentDisposition.substring(20,contentDisposition.length()),"UTF-8").replace("+"," "),mimeType=null;
-							Toast.makeText(Student.this,getString(R.string.download_starting),Toast.LENGTH_SHORT).show();
-							if(fileName.substring(fileName.lastIndexOf(".")+1).toLowerCase(Locale.getDefault()).equals("hwp"))mimeType="application/x-hwp";
-							else mimeType=MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileName.substring(fileName.lastIndexOf(".")+1).toLowerCase(Locale.getDefault()));
-							if(Build.VERSION.SDK_INT<Build.VERSION_CODES.HONEYCOMB)((DownloadManager)Student.this.getSystemService(Context.DOWNLOAD_SERVICE)).enqueue(new DownloadManager.Request(Uri.parse(url)).addRequestHeader("Cookie",CookieManager.getInstance().getCookie("http://student.gs.hs.kr/student/index.do")).setDescription(getString(R.string.app_name)).setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,fileName).setMimeType(mimeType));
-							else ((DownloadManager)Student.this.getSystemService(Context.DOWNLOAD_SERVICE)).enqueue(new DownloadManager.Request(Uri.parse(url)).addRequestHeader("Cookie",CookieManager.getInstance().getCookie("http://student.gs.hs.kr/student/index.do")).setDescription(getString(R.string.app_name)).setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,fileName).setMimeType(mimeType).setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED));
-						}
-						catch(Exception e)
-						{
-						}
-					}
-				}
-			}
-		});
-		webview.setWebViewClient(new WebViewClient()
-		{
-			public void onPageStarted(WebView view,String url,Bitmap favicon)
-			{
-				if(url.equals("http://student.gs.hs.kr/student/logout.do"))finish();
-			}
-			
-			public void onPageFinished(WebView view,String url)
-			{
-				if(mSwipeRefreshLayout.isRefreshing())mSwipeRefreshLayout.setRefreshing(false);
-				if(isLogined&&!isCleared)
-				{
-					webview.clearHistory();
-					isCleared=true;
-				}
-				if(!isDrawerShowing)
-				{
-					getSupportActionBar().setTitle(webview.getTitle());
-					getSupportActionBar().setSubtitle(webview.getUrl());
-				}
-				if(!isLogined&&(url.equals("http://student.gs.hs.kr/student/")||url.equals("http://student.gs.hs.kr/student/index.do")))
-				{
-					isLogined=true;
-					if(isRegistered)
-					{
-						unregisterReceiver(broadcastReceiver);
-						isRegistered=false;
-					}
-					if(getIntent().getAction()=="android.intent.action.VIEW"&&getIntent().getDataString()!=null)webview.loadUrl(getIntent().getDataString());
-				}
-			}
-		});
-		if(mUseAutoLogin)
-		{
-			((TextView)findViewById(R.id.left_text)).setText(getString(R.string.drawer_status_1));
-			if(getIntent().getAction()=="android.intent.action.VIEW")new StudentHttpClient(Student.this,webview,getIntent().getDataString()).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+userId+"&pwd="+pwd+"&mdn="+phoneNumber+"&type=STUD");
-			else new StudentHttpClient(Student.this,webview,null).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+userId+"&pwd="+pwd+"&mdn="+phoneNumber+"&type=STUD");
-		}
-		else webview.loadUrl("http://student.gs.hs.kr/student/login.do");
-		
-		mSwipeRefreshLayout=(SwipeRefreshLayout)findViewById(R.id.swiperefresh);
-		mSwipeRefreshLayout.setColorSchemeResources(android.R.color.holo_blue_light,android.R.color.holo_green_light,android.R.color.holo_orange_light,android.R.color.holo_red_light);
-		mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener()
-		{
-			public void onRefresh()
-			{
-				webview.reload();
-			}
-		});
-		
-		findViewById(R.id.cover).setOnTouchListener(new ViewGroup.OnTouchListener()
-		{
-			public boolean onTouch(View v,MotionEvent event)
-			{
-				switch(event.getAction()&MotionEvent.ACTION_MASK)
-				{
-				case MotionEvent.ACTION_DOWN:
-					if(mVelocityTracker==null)mVelocityTracker=VelocityTracker.obtain();
-					else mVelocityTracker.clear();
-					mVelocityTracker.addMovement(event);
-					break;
-				case MotionEvent.ACTION_MOVE:
-					mVelocityTracker.addMovement(event);
-					mVelocityTracker.computeCurrentVelocity(1000);
-					if(VelocityTrackerCompat.getYVelocity(mVelocityTracker,(event.getAction()&MotionEvent.ACTION_POINTER_INDEX_MASK)>>MotionEvent.ACTION_POINTER_INDEX_SHIFT)<-1000)getSupportActionBar().hide();
-					if(VelocityTrackerCompat.getYVelocity(mVelocityTracker,(event.getAction()&MotionEvent.ACTION_POINTER_INDEX_MASK)>>MotionEvent.ACTION_POINTER_INDEX_SHIFT)>1000)getSupportActionBar().show();
-					break;
-				case MotionEvent.ACTION_UP:
-					mVelocityTracker.recycle();
-					break;
-				}
-				mSwipeRefreshLayout.dispatchTouchEvent(event);
-				return true;
-			}	
-		});
+		if(mVersionCode<20&&mPref.getBoolean("isLogined",false))AccountManager.get(this).addAccountExplicitly(new android.accounts.Account(mUserId,"kr.KENNYSOFT.Student.ACCOUNT"),null,null);
 		
 		try
 		{
@@ -356,22 +387,22 @@ public class Student extends ActionBarActivity
 		
 		if(!mFirstRun)
 		{
-			new AlertDialog.Builder(this).setIcon(R.drawable.ic_launcher).setTitle(R.string.first_title).setMessage(R.string.first_message).setPositiveButton(R.string.first_agree,new OnClickListener()
+			new AlertDialog.Builder(this).setIcon(R.drawable.ic_launcher).setTitle(R.string.first_title).setMessage(R.string.first_message).setPositiveButton(R.string.first_agree,new DialogInterface.OnClickListener()
 			{
 				public void onClick(DialogInterface dialog,int whichButton)
 				{
-					new AlertDialog.Builder(Student.this).setIcon(R.drawable.ic_launcher).setTitle(R.string.second_title).setMessage(R.string.second_message).setPositiveButton(R.string.ok,new OnClickListener()
+					new AlertDialog.Builder(Student.this).setIcon(R.drawable.ic_launcher).setTitle(R.string.second_title).setMessage(R.string.second_message).setPositiveButton(R.string.ok,new DialogInterface.OnClickListener()
 					{
 						public void onClick(DialogInterface dialog,int whichButton)
 						{
-							startActivity(new Intent(Student.this,Account.class));
+							startActivity(new Intent("kr.KENNYSOFT.Student.Action.ACCOUNT"));
 						}
 					}).setCancelable(false).show();
 					SharedPreferences.Editor edit=mPref.edit();
 					edit.putBoolean("FirstRun",true);
 					edit.commit();
 				}
-			}).setNegativeButton(R.string.first_disagree,new OnClickListener()
+			}).setNegativeButton(R.string.first_disagree,new DialogInterface.OnClickListener()
 			{
 				public void onClick(DialogInterface dialog,int whichButton)
 				{
@@ -380,32 +411,55 @@ public class Student extends ActionBarActivity
 			}).setCancelable(false).show();
 		}
 		
+		if(mUseAutoLogin)
+		{
+			mDrawerAdapter.setFooterText(getString(R.string.drawer_status_1));
+			new StudentURLConnection(Student.this,StudentURLConnection.TYPE_LOGIN).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+mUserId+"&pwd="+mPwd+"&mdn="+mPhoneNumber+"&type=STUD");
+		}
+		else mWebView.loadUrl("http://student.gs.hs.kr/student/login.do");
+		
 		IntentFilter intentFilter=new IntentFilter("android.provider.Telephony.SMS_RECEIVED");
 		intentFilter.setPriority(2147483647);
 		registerReceiver(broadcastReceiver,intentFilter);
 		isRegistered=true;
 	}
 	
-	public void onResume()
+	@Override
+	protected void onResume()
 	{
 		boolean mUseAutoLoginBACKUP=mUseAutoLogin;
-		String userIdBACKUP=userId,pwdBACKUP=pwd;
+		String userIdBACKUP=mUserId,pwdBACKUP=mPwd;
 		super.onResume();
 		mUseZoom=mPref.getBoolean("useZoom",false);
-		webview.getSettings().setBuiltInZoomControls(mUseZoom);
-		if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.HONEYCOMB)webview.getSettings().setDisplayZoomControls(false);
+		mWebView.getSettings().setBuiltInZoomControls(mUseZoom);
+		mWebView.getSettings().setDisplayZoomControls(false);
 		mUseFilter=mPref.getBoolean("useFilter",true);
-		userId=mPref.getString("userId","");
-		pwd=mPref.getString("pwd","");
+		mUserId=mPref.getString("userId","");
+		mPwd=mPref.getString("pwd","");
 		mUseAutoLogin=mPref.getBoolean("useAutoLogin",false);
-		if(!isLogined&&((!mUseAutoLoginBACKUP&&mUseAutoLogin)||(mUseAutoLogin&&!userIdBACKUP.equals(userId))||(mUseAutoLogin&&!pwdBACKUP.equals(pwd))))
+		if(!isLogined&&((!mUseAutoLoginBACKUP&&mUseAutoLogin)||(mUseAutoLogin&&!userIdBACKUP.equals(mUserId))||(mUseAutoLogin&&!pwdBACKUP.equals(mPwd))))
 		{
-			((TextView)findViewById(R.id.left_text)).setText(getString(R.string.drawer_status_1));
-			new StudentHttpClient(Student.this,webview,null).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+userId+"&pwd="+pwd+"&mdn="+phoneNumber+"&type=STUD");
+			mDrawerAdapter.setFooterText(getString(R.string.drawer_status_1));
+			new StudentURLConnection(Student.this,StudentURLConnection.TYPE_LOGIN).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+mUserId+"&pwd="+mPwd+"&mdn="+mPhoneNumber+"&type=STUD");
+		}
+		if(mPref.getBoolean("isMenuRestored",false))
+		{
+			mNowFolder=0;
+			mDrawerAdapter.clear();
+			mDrawerAdapter.add(new StudentMenuItem(true,false,0,"송죽 학사 메인","home","http://student.gs.hs.kr/student/index.do",""));
+			mDrawerAdapter.add(new StudentMenuItem(true,false,0,"교사 검색","search","http://student.gs.hs.kr/student/searchTeacher.do",""));
+			mDrawerAdapter.add(new StudentMenuItem(true,false,0,"학생 검색","search","http://student.gs.hs.kr/student/searchStudent.do",""));
+			mDrawerAdapter.add(new StudentMenuItem(false,false,0,"학교 홈페이지","globe","http://gs.hs.kr",""));
+			mDrawerFolder.clear();
+			new StudentURLConnection(this,StudentURLConnection.TYPE_LEFTMENU).execute("http://student.gs.hs.kr/student/index.do");
+			SharedPreferences.Editor edit=mPref.edit();
+			edit.putBoolean("isMenuRestored",false);
+			edit.commit();
 		}
 	}
 	
-	public void onDestroy()
+	@Override
+	protected void onDestroy()
 	{
 		super.onDestroy();
 		if(isRegistered)
@@ -413,26 +467,26 @@ public class Student extends ActionBarActivity
 			unregisterReceiver(broadcastReceiver);
 			isRegistered=false;
 		}
-		Toast.makeText(Student.this,R.string.quit_end,Toast.LENGTH_SHORT).show();
 	}
-
+	
+	@Override
 	public boolean onKeyDown(int keyCode,KeyEvent event)
 	{
 		switch(keyCode)
 		{
 		case KeyEvent.KEYCODE_BACK:
-			if(isDrawerShowing||webview.canGoBack())return true;
+			if(isDrawerShowing||mWebView.canGoBack())return true;
 			else
 			{
-				if(!isExiting)
+				if(!isQuiting)
 				{
 					Toast.makeText(Student.this,R.string.quit_ing,Toast.LENGTH_SHORT).show();
-					isExiting=true;
-					webview.postDelayed(new Runnable()
+					isQuiting=true;
+					mWebView.postDelayed(new Runnable()
 					{
 						public void run()
 						{
-							isExiting=false;
+							isQuiting=false;
 						}
 					},3000);
 				}
@@ -444,6 +498,7 @@ public class Student extends ActionBarActivity
 		}
 	}
 	
+	@Override
 	public boolean onKeyUp(int keyCode,KeyEvent event)
 	{
 		switch(keyCode)
@@ -452,12 +507,11 @@ public class Student extends ActionBarActivity
 			if(isDrawerShowing)
 			{
 				mDrawerLayout.closeDrawer(GravityCompat.START);
-				isDrawerShowing=false;
 				return true;
 			}
-			else if(webview.canGoBack())
+			else if(mWebView.canGoBack())
 			{
-				webview.goBack();
+				mWebView.goBack();
 				return true;
 			}
 			else return super.onKeyDown(keyCode,event);
@@ -466,32 +520,40 @@ public class Student extends ActionBarActivity
 		}
 	}
 	
+	@Override
 	protected void onPostCreate(Bundle savedInstanceState)
 	{
 		super.onPostCreate(savedInstanceState);
 		mDrawerToggle.syncState();
 	}
 	
+	@Override
 	public void onConfigurationChanged(Configuration newConfig)
 	{
 		super.onConfigurationChanged(newConfig);
-		invalidateOptionsMenu();
 		mDrawerToggle.onConfigurationChanged(newConfig);
+		mToolbarTitle.setTextSize(TypedValue.COMPLEX_UNIT_PX,getResources().getDimensionPixelSize(R.dimen.abc_text_size_title_material_toolbar));
+		mToolbarSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_PX,getResources().getDimensionPixelSize(R.dimen.abc_text_size_subtitle_material_toolbar));
 	}
 	
+	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
 		getMenuInflater().inflate(R.menu.student,menu);
 		return true;
 	}
 	
+	@Override
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 		if(mDrawerToggle.onOptionsItemSelected(item))return true;
 		switch(item.getItemId())
 		{
+		case R.id.action_refresh:
+			mWebView.reload();
+			return true;
 		case R.id.action_setting:
-			startActivity(new Intent(this,Setting.class));
+			startActivity(new Intent("kr.KENNYSOFT.Student.Action.SETTING"));
 			return true;
 		case R.id.action_exit:
 			finish();
@@ -504,44 +566,40 @@ public class Student extends ActionBarActivity
 	public void setAutoLogined()
 	{
 		isLogined=true;
-		webview.clearHistory();
-		((TextView)findViewById(R.id.left_text)).setText(String.format(getString(R.string.drawer_status_2),userId));
 		if(isRegistered)
 		{
 			unregisterReceiver(broadcastReceiver);
 			isRegistered=false;
 		}
+		mDrawerAdapter.setFooterText(String.format(getString(R.string.drawer_status_2),mUserId));
+		new StudentURLConnection(this,StudentURLConnection.TYPE_LEFTMENU).execute("http://student.gs.hs.kr/student/index.do");
+		if(getIntent().getAction()=="android.intent.action.VIEW")mWebView.loadUrl(getIntent().getDataString());
+		else mWebView.loadUrl("http://student.gs.hs.kr/student/index.do");
 	}
 	
-	public void updateListView(ListView listview)
+	public void addLeftMenu(String menu)
 	{
-		try
+		String[] lines=menu.split(Pattern.quote("\n"));
+		for(String line:lines)
 		{
-			int firstVisibleItem=mDrawerList.getFirstVisiblePosition(),visibleItemCount=mDrawerList.getLastVisiblePosition()-mDrawerList.getFirstVisiblePosition()+1;
-			for(int i=0;i<visibleItemCount;++i)
+			String[] values=line.split(Pattern.quote("+"));
+			if(values[1].startsWith("-"))
 			{
-				if(mNavIcons.get(firstVisibleItem+i).length()>0)((ImageView)((LinearLayout)listview.getChildAt(i)).getChildAt(0)).setImageResource(getResources().getIdentifier("drawable/glyphicons_"+mNavIcons.get(firstVisibleItem+i),null,getPackageName()));
-				else ((ImageView)((LinearLayout)listview.getChildAt(i)).getChildAt(0)).setImageResource(android.R.color.transparent);
-				if(webview.getUrl().startsWith(mNavLinks.get(firstVisibleItem+i)))
-				{
-					listview.getChildAt(i).setBackgroundColor(Color.parseColor("#FFD0D0D0"));
-					((TextView)((LinearLayout)listview.getChildAt(i)).getChildAt(1)).setTypeface(Typeface.DEFAULT_BOLD);
-				}
-				else
-				{
-					listview.getChildAt(i).setBackgroundColor(Color.parseColor("#00FFFFFF"));
-					((TextView)((LinearLayout)listview.getChildAt(i)).getChildAt(1)).setTypeface(Typeface.DEFAULT);
-				}
+				String convertedTitle;
+				if(values[1].startsWith("--"))convertedTitle=values[1].replace("--","	");
+				else convertedTitle=values[1].replace("-","");
+				mDrawerFolder.get(mNowFolder-1).add(new StudentMenuItem(true,false,mNowFolder,convertedTitle,"",values[0],""));
 			}
-			if(firstVisibleItem==0&&webview.getUrl().equals("http://student.gs.hs.kr/student/"))
+			else
 			{
-				listview.getChildAt(0).setBackgroundColor(Color.parseColor("#FFD0D0D0"));
-				((TextView)((LinearLayout)listview.getChildAt(0)).getChildAt(1)).setTypeface(Typeface.DEFAULT_BOLD);
+				String safeIcon="",safeColor="";
+				if(values.length>=3)safeIcon=values[2];
+				if(values.length>=4)safeColor=values[3];
+				mDrawerAdapter.add(new StudentMenuItem(false,false,++mNowFolder,values[1],safeIcon,values[0],safeColor));
+				mDrawerFolder.add(new StudentMenuItemList(this));
 			}
 		}
-		catch(NullPointerException e)
-		{
-		}
+		isDrawerAdded=true;
 	}
 	
 	BroadcastReceiver broadcastReceiver=new BroadcastReceiver()
@@ -565,29 +623,19 @@ public class Student extends ActionBarActivity
 				
 				final String body=msgs[i].getDisplayMessageBody();
 				String accessCode=null;
-				switch(body.length())
-				{
-				case 32:
-					if(!body.substring(0,5).equals("[송죽]["))continue;
-					accessCode=body.substring(5,10);
-					break;
-				case 40:
-					if(!body.substring(0,13).equals("[Web발신]\n[송죽]["))continue;
-					accessCode=body.substring(13,18);
-					break;
-				default:
-					continue;
-				}
+				if(body.length()==32&&body.startsWith("[송죽]["))accessCode=body.substring(5,10);
+				else if(body.length()==40&&body.startsWith("[Web발신]\n[송죽]["))accessCode=body.substring(13,18);
+				else continue;
 				
 				if(Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT)
 				{
-					webview.loadUrl("javascript:document.getElementById('accessCode').value='"+accessCode+"';");
-					webview.loadUrl("javascript:document.getElementsByClassName('btn btn-large btn-primary')[0].click();");
+					mWebView.loadUrl("javascript:document.getElementById('accessCode').value='"+accessCode+"';");
+					mWebView.loadUrl("javascript:document.getElementsByClassName('btn btn-large btn-primary')[0].click();");
 				}
 				else
 				{
-					webview.evaluateJavascript("document.getElementById('accessCode').value='"+accessCode+"';",null);
-					webview.evaluateJavascript("document.getElementsByClassName('btn btn-large btn-primary')[0].click();",null);
+					mWebView.evaluateJavascript("document.getElementById('accessCode').value='"+accessCode+"';",null);
+					mWebView.evaluateJavascript("document.getElementsByClassName('btn btn-large btn-primary')[0].click();",null);
 				}
 				
 				unregisterReceiver(broadcastReceiver);
@@ -599,79 +647,371 @@ public class Student extends ActionBarActivity
 	};
 }
 
-@SuppressWarnings("deprecation")
-class StudentHttpClient extends AsyncTask<String,Void,HttpResponse>
+class StudentURLConnection extends AsyncTask<String,Void,String>
 {
-	Context context;
-	String toContinue;
-	WebView webview;
+	static final int TYPE_LOGIN=1;
+	static final int TYPE_LEFTMENU=2;
 	
-	StudentHttpClient(Context context,WebView webview,String toContinue)
+	Context mContext;
+	int mType;
+	
+	StudentURLConnection(Context context,int type)
 	{
-		this.context=context;
-		this.webview=webview;
-		this.toContinue=toContinue;
+		mContext=context;
+		mType=type;
 	}
 	
-	protected HttpResponse doInBackground(String... urls)
+	protected String doInBackground(String... urls)
 	{
+		String html="";
 		try
 		{
-			HttpClient httpClient=new DefaultHttpClient();
-			HttpResponse httpResponse=httpClient.execute(new HttpGet(urls[0]));
-			List<Cookie> cookies=((DefaultHttpClient)httpClient).getCookieStore().getCookies();
 			CookieManager cookieManager=CookieManager.getInstance();
-			for(Cookie cookie:cookies)cookieManager.setCookie(cookie.getDomain(),cookie.getName()+"="+cookie.getValue()+";path="+cookie.getPath());
-			CookieSyncManager.createInstance(context).sync();
-			return httpResponse;
+			URLConnection connection=new URL(urls[0]).openConnection();
+			connection.setRequestProperty("Cookie",cookieManager.getCookie(urls[0]));
+			InputStream is=connection.getInputStream();
+			BufferedReader in=new BufferedReader(new InputStreamReader(is));
+			String line="";
+			while((line=in.readLine())!=null)html=html+line+"\n";
+			Map<String,List<String>> headerFields=connection.getHeaderFields();
+			List<String> cookiesHeader=headerFields.get("Set-Cookie");
+			if(cookiesHeader!=null)for(String cookie:cookiesHeader)cookieManager.setCookie("student.gs.hs.kr",cookie);
 		}
 		catch(Exception e)
 		{
 		}
-		return null;
+		return html;
 	}
 	
-	protected void onPostExecute(HttpResponse response)
+	@Override
+	protected void onPostExecute(String html)
 	{
-		try
+		switch(mType)
 		{
-			String html=EntityUtils.toString(response.getEntity());
-			if(html.contains("OK"))
-			{
-				((Student)context).setAutoLogined();
-				if(toContinue!=null)webview.loadUrl(toContinue);
-				else webview.loadUrl("http://student.gs.hs.kr/student/index.do");
-			}
+		case TYPE_LOGIN:
+			if(html.contains("OK"))((Student)mContext).setAutoLogined();
 			else if(html.contains("error"))
 			{
-				SharedPreferences.Editor edit=((Student)context).mPref.edit();
-				edit.putString("userId","");
-				edit.putString("pwd","");
-				edit.putBoolean("useAutoLogin",false);
-				edit.putBoolean("isLogined",false);
-				edit.commit();
-				new AlertDialog.Builder(context).setTitle(context.getString(R.string.login_error)).setMessage(html.substring(html.indexOf("message\":")+10,html.length()-9)).setPositiveButton(android.R.string.ok,new OnClickListener()
+				new AlertDialog.Builder(mContext).setTitle(mContext.getString(R.string.login_error)).setMessage(html.substring(html.indexOf("message\":")+10,html.length()-6)).setPositiveButton(android.R.string.ok,new DialogInterface.OnClickListener()
 				{
 					public void onClick(DialogInterface dialog,int whichButton)
 					{
-						context.startActivity(new Intent(context,Account.class));
+						mContext.startActivity(new Intent("kr.KENNYSOFT.Student.Action.LOGOUT"));
 					}
 				}).setCancelable(false).show();
-				webview.loadUrl("http://student.gs.hs.kr/student/login.do");
 			}
 			else
 			{
-				new AlertDialog.Builder(context).setTitle(context.getString(R.string.login_failed)).setMessage(context.getString(R.string.login_failed_message)).setPositiveButton(android.R.string.ok,new OnClickListener()
+				new AlertDialog.Builder(mContext).setTitle(mContext.getString(R.string.login_failed)).setMessage(mContext.getString(R.string.login_failed_message)).setPositiveButton(android.R.string.ok,new DialogInterface.OnClickListener()
 				{
 					public void onClick(DialogInterface dialog,int whichButton)
 					{
-						context.startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+						mContext.startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
 					}
 				}).setCancelable(false).show();
 			}
+			break;
+		case TYPE_LEFTMENU:
+			String menu="";
+			Document document=Jsoup.parse(html);
+			for(Element element:document.select("div.navbar.navbar-inverse.navbar-fixed-top").first().getElementsByTag("a"))
+			{
+				if(element.className().equals("brand"))menu=menu+"+"+element.text()+"\n";
+				else menu=menu+"http://student.gs.hs.kr"+element.attr("href")+"+-"+element.text()+"\n";
+			}
+			for(Element element:document.select("div.accordion.leftMenu div.accordion-group"))
+			{
+				Element heading=element.getElementsByClass("accordion-heading").first();
+				if(heading.getElementsByTag("a").size()==0)continue;
+				if(heading.getElementsByTag("a").first().attr("href").indexOf('#')==-1)menu=menu+"http://student.gs.hs.kr"+heading.getElementsByTag("a").first().attr("href");
+				menu=menu+"+"+heading.getElementsByTag("a").first().text()+"+"+heading.getElementsByTag("i").first().className().substring(5).replace("-","_");
+				if(heading.getElementsByTag("a").first().className().length()>23)menu=menu+"+"+heading.getElementsByTag("a").first().className().substring(23);
+				menu=menu+"\n";
+				if(element.getElementsByClass("accordion-body").size()>0)
+				{
+					for(Element item:element.getElementsByClass("accordion-body").first().getElementsByTag("a"))
+					{
+						if(item.parent().parent().className().equals("sub2Menu"))menu=menu+"http://student.gs.hs.kr"+item.attr("href")+"+--"+item.text()+"\n";
+						else menu=menu+"http://student.gs.hs.kr"+item.attr("href")+"+-"+item.text()+"\n";
+					}
+				}
+			}
+			((Student)mContext).addLeftMenu(menu);
+			break;
 		}
-		catch(Exception e)
+	}
+}
+
+class StudentMenuItem
+{
+	boolean isLoginNeeded,isExpanded;
+	int FolderId;
+	String Title,Icon,Link,Color;
+	
+	StudentMenuItem(boolean isLoginNeeded,boolean isExpanded,int FolderId,String Title,String Icon,String Link,String Color)
+	{
+		this.isLoginNeeded=isLoginNeeded;
+		this.isExpanded=isExpanded;
+		this.FolderId=FolderId;
+		this.Title=Title;
+		this.Icon=Icon;
+		this.Link=Link;
+		this.Color=Color;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return Title+Icon+Link+Color;
+	}
+}
+
+@SuppressWarnings("serial")
+class StudentMenuItemList extends ArrayList<StudentMenuItem>
+{
+	Context mContext;
+	SharedPreferences mPref;
+	
+	StudentMenuItemList(Context context)
+	{
+		mContext=context;
+		mPref=PreferenceManager.getDefaultSharedPreferences(mContext);
+	}
+	
+	@Override
+	public boolean add(StudentMenuItem object)
+	{
+		int i;
+		for(i=0;i<mPref.getInt("deletedMenuCnt",0);++i)if(object.toString().equals(mPref.getString("deletedMenu"+i,"")))break;
+		if(i>=mPref.getInt("deletedMenuCnt",0))return super.add(object);
+		else return false;
+	}
+	
+	public boolean addToIndex(int index,StudentMenuItem object)
+	{
+		int i;
+		for(i=0;i<mPref.getInt("deletedMenuCnt",0);++i)if(object.toString().equals(mPref.getString("deletedMenu"+i,"")))break;
+		if(i>=mPref.getInt("deletedMenuCnt",0))
 		{
+			super.add(index,object);
+			return true;
 		}
+		else return false;
+	}
+}
+
+@SuppressWarnings("deprecation")
+class StudentMenuItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
+{
+	Context mContext;
+	int mHeaderPos;
+	StudentMenuItemList mDataSet;
+	String mHeaderSeason[]={"spring","summer","fall","winter"},mFooterText;
+	
+	final int TYPE_HEADER=0,TYPE_ITEM=1,TYPE_FOOTER=2;
+	
+	StudentMenuItemAdapter(Context context)
+	{
+		mContext=context;
+		mDataSet=new StudentMenuItemList(mContext);
+	}
+	
+	class StudentMenuHeaderViewHolder extends RecyclerView.ViewHolder
+	{
+		ImageView mImageView;
+		
+		StudentMenuHeaderViewHolder(View view)
+		{
+			super(view);
+			mImageView=(ImageView)view.findViewById(R.id.list_header);
+		}
+	}
+	
+	class StudentMenuItemViewHolder extends RecyclerView.ViewHolder
+	{
+		LinearLayout mListItem;
+		ImageView mIcon;
+		TextView mTitle;
+		
+		StudentMenuItemViewHolder(View view)
+		{
+			super(view);
+			mListItem=(LinearLayout)view.findViewById(R.id.list_item);
+			mIcon=(ImageView)view.findViewById(R.id.list_item_icon);
+			mTitle=(TextView)view.findViewById(R.id.list_item_title);
+		}
+	}
+	
+	class StudentMenuFooterViewHolder extends RecyclerView.ViewHolder
+	{
+		TextView mTextView;
+		
+		StudentMenuFooterViewHolder(View view)
+		{
+			super(view);
+			mTextView=(TextView)view.findViewById(R.id.list_footer);
+		}
+	}
+	
+	public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent,int viewType)
+	{
+		switch(viewType)
+		{
+		case TYPE_HEADER:
+			return new StudentMenuHeaderViewHolder(LayoutInflater.from(mContext).inflate(R.layout.list_header,parent,false));
+		case TYPE_ITEM:
+			return new StudentMenuItemViewHolder(LayoutInflater.from(mContext).inflate(R.layout.list_item,parent,false));
+		case TYPE_FOOTER:
+			return new StudentMenuFooterViewHolder(LayoutInflater.from(mContext).inflate(R.layout.list_footer,parent,false));
+		default:
+			return null;
+		}
+	}
+	
+	public void onBindViewHolder(RecyclerView.ViewHolder holder,int position)
+	{
+		switch(getItemViewType(position))
+		{
+		case TYPE_HEADER:
+			onBindHeaderView((StudentMenuHeaderViewHolder)holder);
+			break;
+		case TYPE_ITEM:
+			onBindItemView((StudentMenuItemViewHolder)holder,position-1);
+			break;
+		case TYPE_FOOTER:
+			onBindFooterView((StudentMenuFooterViewHolder)holder);
+		}
+	}
+	
+	private void onBindHeaderView(StudentMenuHeaderViewHolder holder)
+	{
+		holder.mImageView.setImageResource(mContext.getResources().getIdentifier("banner_"+mHeaderSeason[((Calendar.getInstance().get(Calendar.MONTH)+10)%12)/3]+"_"+mHeaderPos,"drawable",mContext.getPackageName()));
+	}
+	
+	private void onBindItemView(StudentMenuItemViewHolder holder,int position)
+	{
+		ColorMatrix inverter=new ColorMatrix(new float[]{-1,0,0,0,255,0,-1,0,0,255,0,0,-1,0,255,0,0,0,1,0}),multiplier=new ColorMatrix();
+		holder.mIcon.setImageResource(mContext.getResources().getIdentifier("glyphicons_"+mDataSet.get(position).Icon,"drawable",mContext.getPackageName()));
+		holder.mTitle.setText(mDataSet.get(position).Title);
+		if(mDataSet.get(position).Link.length()>0)
+		{
+			if(((Student)mContext).mWebView.getUrl()!=null&&((Student)mContext).mWebView.getUrl().startsWith(mDataSet.get(position).Link))
+			{
+				holder.mListItem.setBackgroundResource(R.color.menu_bg_active_item);
+				multiplier.setScale(((mContext.getResources().getColor(R.color.color_primary_dark)&0xff0000)>>16)/255f*0.9f,((mContext.getResources().getColor(R.color.color_primary_dark)&0x00ff00)>>8)/255f*0.9f,((mContext.getResources().getColor(R.color.color_primary_dark)&0x0000ff)>>0)/255f*0.9f,1f);
+				multiplier.preConcat(inverter);
+				holder.mIcon.setColorFilter(new ColorMatrixColorFilter(multiplier.getArray()));
+				holder.mTitle.setTextColor(mContext.getResources().getColor(R.color.color_primary_dark));
+			}
+			else
+			{
+				holder.mListItem.setBackgroundResource(R.color.menu_bg_none);
+				multiplier.setScale(0.4f,0.4f,0.4f,1f);
+				multiplier.preConcat(inverter);
+				holder.mIcon.setColorFilter(new ColorMatrixColorFilter(multiplier.getArray()));
+				holder.mTitle.setTextColor(mContext.getResources().getColor(R.color.menu_text));
+			}
+		}
+		else
+		{
+			if(mDataSet.get(position).isExpanded)
+			{
+				if(mDataSet.get(position).Color.length()==0)holder.mListItem.setBackgroundResource(R.color.menu_bg_active_folder);
+				else if(mDataSet.get(position).Color.equals("red"))holder.mListItem.setBackgroundResource(R.color.gs_bg_red_active);
+				else if(mDataSet.get(position).Color.equals("blue"))holder.mListItem.setBackgroundResource(R.color.gs_bg_blue_active);
+				else if(mDataSet.get(position).Color.equals("yellow"))holder.mListItem.setBackgroundResource(R.color.gs_bg_yellow_active);
+				else if(mDataSet.get(position).Color.equals("green"))holder.mListItem.setBackgroundResource(R.color.gs_bg_green_active);
+				multiplier.setScale(((mContext.getResources().getColor(R.color.color_primary)&0xff0000)>>16)/255f*0.9f,((mContext.getResources().getColor(R.color.color_primary)&0x00ff00)>>8)/255f*0.9f,((mContext.getResources().getColor(R.color.color_primary)&0x0000ff)>>0)/255f*0.9f,1f);
+				multiplier.preConcat(inverter);
+				holder.mIcon.setColorFilter(new ColorMatrixColorFilter(multiplier.getArray()));
+				holder.mTitle.setTextColor(mContext.getResources().getColor(R.color.color_primary));
+			}
+			else
+			{
+				if(mDataSet.get(position).Color.length()==0)holder.mListItem.setBackgroundResource(R.color.menu_bg_none);
+				else if(mDataSet.get(position).Color.equals("red"))holder.mListItem.setBackgroundResource(R.color.gs_bg_red);
+				else if(mDataSet.get(position).Color.equals("blue"))holder.mListItem.setBackgroundResource(R.color.gs_bg_blue);
+				else if(mDataSet.get(position).Color.equals("yellow"))holder.mListItem.setBackgroundResource(R.color.gs_bg_yellow);
+				else if(mDataSet.get(position).Color.equals("green"))holder.mListItem.setBackgroundResource(R.color.gs_bg_green);
+				multiplier.setScale(0.4f,0.4f,0.4f,1f);
+				multiplier.preConcat(inverter);
+				holder.mIcon.setColorFilter(new ColorMatrixColorFilter(multiplier.getArray()));
+				holder.mTitle.setTextColor(mContext.getResources().getColor(R.color.menu_text));
+			}
+		}
+	}
+	
+	private void onBindFooterView(StudentMenuFooterViewHolder holder)
+	{
+		holder.mTextView.setText(mFooterText);
+	}
+	
+	public int getItemCount()
+	{
+		return mDataSet.size()+2;
+	}
+	
+	@Override
+	public int getItemViewType(int position)
+	{
+		if(position==0)return TYPE_HEADER;
+		else if(position==getItemCount()-1)return TYPE_FOOTER;
+		else return TYPE_ITEM;
+	}
+	
+	public StudentMenuItem get(int index)
+	{
+		return mDataSet.get(index);
+	}
+	
+	public boolean add(StudentMenuItem object)
+	{
+		boolean result=mDataSet.add(object);
+		if(result)notifyItemInserted(getItemCount()-2);
+		return result;
+	}
+	
+	public boolean addToIndex(int index,StudentMenuItem object)
+	{
+		boolean result=mDataSet.addToIndex(index,object);
+		if(result)notifyItemInserted(index+1);
+		return result;
+	}
+	
+	public StudentMenuItem remove(int position)
+	{
+		StudentMenuItem result=mDataSet.remove(position);
+		notifyItemRemoved(position+1);
+		return result;
+	}
+	
+	public void clear()
+	{
+		mDataSet.clear();
+		notifyDataSetChanged();
+	}
+	
+	public void setExpanded(int index)
+	{
+		mDataSet.get(index).isExpanded=true;
+		notifyItemChanged(index+1);
+	}
+	
+	public void setCollapsed(int index)
+	{
+		mDataSet.get(index).isExpanded=false;
+		notifyItemChanged(index+1);
+	}
+	
+	public void setHeaderNext()
+	{
+		mHeaderPos=(mHeaderPos+1)%5;
+		notifyItemChanged(0);
+	}
+	
+	public void setFooterText(String text)
+	{
+		mFooterText=text;
+		notifyItemChanged(getItemCount()-1);
 	}
 }

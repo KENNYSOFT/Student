@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<color name="color_primary">#4CAF50</color>
+	<color name="color_primary_dark">#388E3C</color>
+	<color name="color_accent">#00BCD4</color>
+	
+	<color name="menu_text">#000000</color>
+	
+	<color name="menu_bg_none">#FFFFFF</color>
+	<color name="menu_bg_active_item">#E0E0E0</color>
+	<color name="menu_bg_active_folder">#F0F0F0</color>
+	
+	<color name="menu_toast_bg">#757575</color>
+	<color name="menu_toast_deleted">#FFFFFF</color>
+	<color name="menu_toast_undo">#FFBB33</color>
+	
+	<color name="gs_bg_red">#F2DEDE</color>
+	<color name="gs_bg_blue">#D9EDF7</color>
+	<color name="gs_bg_yellow">#FCF8E3</color>
+	<color name="gs_bg_green">#DFF0D8</color>
+	
+	<color name="gs_bg_red_active">#E3B9B9</color>
+	<color name="gs_bg_blue_active">#AFD9EE</color>
+	<color name="gs_bg_yellow_active">#F6EAB0</color>
+	<color name="gs_bg_green_active">#BFE1B1</color>
+	
+	<color name="preference_fallback_accent_color">#ff80cbc4</color>
+
+</resources>

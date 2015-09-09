@@ -1,132 +1,116 @@
 package kr.KENNYSOFT.Student;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.net.URL;
+import java.net.URLConnection;
 import java.security.KeyFactory;
 import java.security.spec.RSAPublicKeySpec;
 
 import javax.crypto.Cipher;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.util.EntityUtils;
-
-import android.app.AlertDialog;
+import android.accounts.AccountAuthenticatorResponse;
+import android.accounts.AccountManager;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.CheckBoxPreference;
-import android.preference.EditTextPreference;
-import android.preference.Preference;
-import android.preference.Preference.OnPreferenceChangeListener;
-import android.preference.Preference.OnPreferenceClickListener;
-import android.preference.PreferenceActivity;
 import android.provider.Settings;
-import android.support.v7.widget.Toolbar;
-import android.text.Selection;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.LinearLayout;
+import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.preference.EditTextPreference;
+import android.support.v7.preference.Preference;
+import android.support.v7.preference.Preference.OnPreferenceChangeListener;
+import android.support.v7.preference.Preference.OnPreferenceClickListener;
+import android.support.v7.preference.PreferenceFragmentCompat;
+import android.support.v7.preference.PreferenceManager;
+import android.support.v7.preference.SwitchPreferenceCompat;
+import android.view.MenuItem;
+
+public class Account extends AppCompatActivity
+{
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		getSupportFragmentManager().beginTransaction().replace(android.R.id.content,new AccountFragment(this)).commit();
+	}
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		switch(item.getItemId())
+		{
+		case android.R.id.home:
+			finish();
+			return true;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
+}
 
 @SuppressWarnings("deprecation")
-public class Account extends PreferenceActivity
+class AccountFragment extends PreferenceFragmentCompat
 {
-	boolean mUserIdChk,mPwdChk,mIsLogined;
-	SharedPreferences mPref;
-	Toolbar mToolbar;
+	Context mContext;
+	SharedPreferences mPref; 
 	
+	AccountFragment(Context context)
+	{
+		mContext=context;
+		mPref=PreferenceManager.getDefaultSharedPreferences(mContext);
+	}
+	
+	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		addPreferencesFromResource(R.xml.account);
 		
+		if(getActivity().getIntent().getAction()!=null)
+		{
+			if(getActivity().getIntent().getAction().equals("kr.KENNYSOFT.Student.Action.ADD_ACCOUNT"))
+			{
+				if(mPref.getBoolean("isLogined",false)&&AccountManager.get(mContext).addAccountExplicitly(new android.accounts.Account(mPref.getString("userId",""),"kr.KENNYSOFT.Student.ACCOUNT"),null,null))
+				{
+					AccountAuthenticatorResponse response=getActivity().getIntent().getParcelableExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE);
+					Bundle result=new Bundle();
+					result.putString(AccountManager.KEY_ACCOUNT_NAME,mPref.getString("userId",""));
+					result.putString(AccountManager.KEY_ACCOUNT_TYPE,"kr.KENNYSOFT.Student.ACCOUNT");
+					response.onResult(result);
+					getActivity().finish();
+				}
+			}
+			if(getActivity().getIntent().getAction().equals("kr.KENNYSOFT.Student.Action.LOGOUT"))logout();
+		}
+	}
+	
+	public void onCreatePreferences(Bundle savedInstanceState,String rootKey)
+	{
+	}
+	
+	@Override
+	public void onStart()
+	{
+		super.onStart();
 		findPreference("userId").setOnPreferenceClickListener(mUserIdClick);
 		findPreference("userId").setOnPreferenceChangeListener(mUserIdChange);
 		findPreference("pwd").setOnPreferenceClickListener(mPwdClick);
 		findPreference("pwd").setOnPreferenceChangeListener(mPwdChange);
-		findPreference("login").setOnPreferenceClickListener(mLoginClick);
-		
-		mPref=getSharedPreferences("kr.KENNYSOFT.Student_preferences",MODE_PRIVATE);
-		mUserIdChk=mPref.getString("userId","").length()>0;
-		mPwdChk=mPref.getString("pwd","").length()>0;
-		mIsLogined=mPref.getBoolean("isLogined",false);
-		findPreference("pwd").setEnabled(mUserIdChk);
-		findPreference("login").setEnabled(mPwdChk);
-		findPreference("useAutoLogin").setEnabled(mIsLogined);
-		if(mIsLogined)
-		{
-			findPreference("userId").setEnabled(false);
-			findPreference("pwd").setEnabled(false);
-			findPreference("login").setTitle(R.string.account_logout);
-			findPreference("login").setOnPreferenceClickListener(mLogoutClick);
-			findPreference("useAutoLogin").setSummary(String.format(getString(R.string.account_useAutoLogin_summary),mPref.getString("userId","")));
-		}
-		else ((CheckBoxPreference)findPreference("useAutoLogin")).setChecked(false);
-	}
-	
-	public void setContentView(int layoutResID)
-	{
-		ViewGroup contentView=(ViewGroup)LayoutInflater.from(this).inflate(R.layout.account,new LinearLayout(this),false);
-		mToolbar=(Toolbar)contentView.findViewById(R.id.account_toolbar);
-		mToolbar.setTitle(getTitle());
-		mToolbar.setNavigationOnClickListener(new View.OnClickListener()
-		{
-			public void onClick(View v)
-			{
-				finish();
-			}
-		});
-		ViewGroup contentWrapper=(ViewGroup)contentView.findViewById(R.id.account_preference);
-		LayoutInflater.from(this).inflate(layoutResID,contentWrapper,true);
-		getWindow().setContentView(contentView);
-	}
-	
-	public void login()
-	{
-		mIsLogined=true;
-		SharedPreferences.Editor edit=mPref.edit();
-		edit.putBoolean("isLogined",true);
-		edit.putBoolean("useAutoLogin",true);
-		edit.commit();
-		findPreference("userId").setEnabled(false);
-		findPreference("pwd").setEnabled(false);
-		findPreference("login").setTitle(R.string.account_logout);
-		findPreference("login").setOnPreferenceClickListener(mLogoutClick);
-		findPreference("useAutoLogin").setEnabled(true);
-		findPreference("useAutoLogin").setSummary(String.format(getString(R.string.account_useAutoLogin_summary),mPref.getString("userId","")));
-		((CheckBoxPreference)findPreference("useAutoLogin")).setChecked(true);
-	}
-	
-	public void logout()
-	{
-		mUserIdChk=false;
-		mPwdChk=false;
-		mIsLogined=false;
-		SharedPreferences.Editor edit=mPref.edit();
-		edit.putString("userId","");
-		edit.putString("pwd","");
-		edit.putBoolean("isLogined",false);
-		edit.putBoolean("useAutoLogin",false);
-		edit.commit();
-		findPreference("userId").setEnabled(true);
-		findPreference("pwd").setEnabled(false);
-		findPreference("login").setTitle(R.string.account_login);
-		findPreference("login").setOnPreferenceClickListener(mLoginClick);
-		findPreference("login").setEnabled(false);
-		((CheckBoxPreference)findPreference("useAutoLogin")).setChecked(false);
-		findPreference("useAutoLogin").setEnabled(false);
+		updatePreference();
 	}
 	
 	OnPreferenceClickListener mUserIdClick=new OnPreferenceClickListener()
 	{
-		public boolean onPreferenceClick(final Preference preference)
+		public boolean onPreferenceClick(Preference preference)
 		{
-			Selection.setSelection(((EditTextPreference)preference).getEditText().getText(),((EditTextPreference)preference).getEditText().getText().length());
+			((EditTextPreference)preference).setText("");
 			return true;
 		}
 	};
@@ -135,17 +119,16 @@ public class Account extends PreferenceActivity
 	{
 		public boolean onPreferenceChange(Preference preference,Object newValue)
 		{
-			mUserIdChk=newValue.toString().length()>0;
-			findPreference("pwd").setEnabled(mUserIdChk);
+			findPreference("pwd").setEnabled(newValue.toString().length()>0);
 			return true;
 		}
 	};
 	
 	OnPreferenceClickListener mPwdClick=new OnPreferenceClickListener()
 	{
-		public boolean onPreferenceClick(final Preference preference)
+		public boolean onPreferenceClick(Preference preference)
 		{
-			((EditTextPreference)preference).getEditText().setText("");
+			((EditTextPreference)preference).setText("");
 			return true;
 		}
 	};
@@ -167,86 +150,138 @@ public class Account extends PreferenceActivity
 			catch(Exception e)
 			{
 			}
-			mPwdChk=newValue.toString().length()>0;
 			SharedPreferences.Editor edit=mPref.edit();
-			if(mPwdChk)edit.putString("pwd",encryptedNewValue);
+			if(newValue.toString().length()>0)edit.putString("pwd",encryptedNewValue);
 			else edit.putString("pwd","");
 			edit.commit();
-			findPreference("login").setEnabled(mPwdChk);
+			findPreference("login").setEnabled(newValue.toString().length()>0);
 			return false;
 		}
 	};
 	
 	OnPreferenceClickListener mLoginClick=new OnPreferenceClickListener()
 	{
-		public boolean onPreferenceClick(final Preference preference)
+		public boolean onPreferenceClick(Preference preference)
 		{
-			new AccountHttpClient(Account.this).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+mPref.getString("userId","")+"&pwd="+mPref.getString("pwd","")+"&type=STUD");
+			new AccountURLConnection(mContext,AccountFragment.this).execute("http://student.gs.hs.kr/student/api/login.do?key=d56b699830e7&userId="+mPref.getString("userId","")+"&pwd="+mPref.getString("pwd","")+"&type=STUD");
 			return true;
 		}
 	};
 	
 	OnPreferenceClickListener mLogoutClick=new OnPreferenceClickListener()
 	{
-		public boolean onPreferenceClick(final Preference preference)
+		public boolean onPreferenceClick(Preference preference)
 		{
 			logout();
 			return true;
 		}
 	};
-}
-
-@SuppressWarnings("deprecation")
-class AccountHttpClient extends AsyncTask<String,Void,HttpResponse>
-{
-	Context context;
 	
-	AccountHttpClient(Context context)
-	{
-		this.context=context;
-	}
-	
-	protected HttpResponse doInBackground(String... urls)
+	void updatePreference()
 	{
 		try
 		{
-			return new DefaultHttpClient().execute(new HttpGet(urls[0]));
-		}
-		catch(Exception e)
-		{
-		}
-		return null;
-	}
-	
-	protected void onPostExecute(HttpResponse response)
-	{
-		try
-		{
-			String html=EntityUtils.toString(response.getEntity());
-			if(html.contains("OK"))((Account)context).login();
-			else if(html.contains("error"))
+			if(!mPref.getBoolean("isLogined",false))
 			{
-				new AlertDialog.Builder(context).setTitle(context.getString(R.string.login_error)).setMessage(html.substring(html.indexOf("message\":")+10,html.length()-9)).setPositiveButton(android.R.string.ok,new OnClickListener()
-				{
-					public void onClick(DialogInterface dialog,int whichButton)
-					{
-						((Account)context).logout();
-					}
-				}).setCancelable(false).create().show();
+				findPreference("userId").setEnabled(true);
+				findPreference("pwd").setEnabled(mPref.getString("userId","").length()>0);
+				findPreference("login").setEnabled(mPref.getString("pwd","").length()>0);
+				findPreference("login").setTitle(R.string.account_login);
+				findPreference("login").setOnPreferenceClickListener(mLoginClick);
+				findPreference("useAutoLogin").setEnabled(false);
+				findPreference("useAutoLogin").setSummary(null);
+				((SwitchPreferenceCompat)findPreference("useAutoLogin")).setChecked(false);
 			}
 			else
 			{
-				new AlertDialog.Builder(context).setTitle(context.getString(R.string.login_failed)).setMessage(context.getString(R.string.login_failed_message)).setPositiveButton(android.R.string.ok,new OnClickListener()
-				{
-					public void onClick(DialogInterface dialog,int whichButton)
-					{
-						context.startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
-					}
-				}).setCancelable(false).create().show();
+				findPreference("userId").setEnabled(false);
+				findPreference("pwd").setEnabled(false);
+				findPreference("login").setTitle(R.string.account_logout);
+				findPreference("login").setOnPreferenceClickListener(mLogoutClick);
+				findPreference("useAutoLogin").setEnabled(true);
+				findPreference("useAutoLogin").setSummary(String.format(getString(R.string.account_useAutoLogin_summary),mPref.getString("userId","")));
 			}
 		}
 		catch(Exception e)
 		{
+		}
+	}
+	
+	public void login()
+	{
+		AccountManager.get(mContext).addAccountExplicitly(new android.accounts.Account(mPref.getString("userId",""),"kr.KENNYSOFT.Student.ACCOUNT"),null,null);
+		((SwitchPreferenceCompat)findPreference("useAutoLogin")).setChecked(true);
+		SharedPreferences.Editor edit=mPref.edit();
+		edit.putBoolean("isLogined",true);
+		edit.putBoolean("useAutoLogin",true);
+		edit.commit();
+		updatePreference();
+	}
+	
+	public void logout()
+	{
+		AccountManager.get(mContext).removeAccount(new android.accounts.Account(mPref.getString("userId",""),"kr.KENNYSOFT.Student.ACCOUNT"),null,null);
+		SharedPreferences.Editor edit=mPref.edit();
+		edit.putString("userId","");
+		edit.putString("pwd","");
+		edit.putBoolean("isLogined",false);
+		edit.putBoolean("useAutoLogin",false);
+		edit.commit();
+		updatePreference();
+	}
+}
+
+class AccountURLConnection extends AsyncTask<String,Void,String>
+{
+	Context mContext;
+	Fragment mFragment;
+	
+	AccountURLConnection(Context context,Fragment fragment)
+	{
+		mContext=context;
+		mFragment=fragment;
+	}
+	
+	protected String doInBackground(String... urls)
+	{
+		String html="";
+		try
+		{
+			URLConnection connection=new URL(urls[0]).openConnection();
+			InputStream is=connection.getInputStream();
+			BufferedReader in=new BufferedReader(new InputStreamReader(is));
+			String line="";
+			while((line=in.readLine())!=null)html=html+line+"\n";
+		}
+		catch(Exception e)
+		{
+		}
+		return html;
+	}
+	
+	@Override
+	protected void onPostExecute(String html)
+	{
+		if(html.contains("OK"))((AccountFragment)mFragment).login();
+		else if(html.contains("error"))
+		{
+			new AlertDialog.Builder(mContext).setTitle(mContext.getString(R.string.login_error)).setMessage(html.substring(html.indexOf("message\":")+10,html.length()-6)).setPositiveButton(android.R.string.ok,new DialogInterface.OnClickListener()
+			{
+				public void onClick(DialogInterface dialog,int whichButton)
+				{
+					((AccountFragment)mFragment).logout();
+				}
+			}).setCancelable(false).create().show();
+		}
+		else
+		{
+			new AlertDialog.Builder(mContext).setTitle(mContext.getString(R.string.login_failed)).setMessage(mContext.getString(R.string.login_failed_message)).setPositiveButton(android.R.string.ok,new DialogInterface.OnClickListener()
+			{
+				public void onClick(DialogInterface dialog,int whichButton)
+				{
+					mContext.startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+				}
+			}).setCancelable(false).create().show();
 		}
 	}
 }

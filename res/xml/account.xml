@@ -1,6 +1,6 @@
 <PreferenceScreen
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:key="Account" >
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:key="account" >
 	<EditTextPreference
 		android:key="userId"
 		android:title="@string/account_userId"
@@ -14,7 +14,7 @@
 	<Preference
 		android:key="login"
 		android:title="@string/account_login" />
-	<CheckBoxPreference 
-	    android:key="useAutoLogin"
-	    android:title="@string/account_useAutoLogin" />
+	<android.support.v7.preference.SwitchPreferenceCompat
+		android:key="useAutoLogin"
+		android:title="@string/account_useAutoLogin" />
 </PreferenceScreen>

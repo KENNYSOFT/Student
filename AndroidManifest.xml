@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest
+	xmlns:android="http://schemas.android.com/apk/res/android"
 	package="kr.KENNYSOFT.Student"
-	android:versionCode="19"
-	android:versionName="1.2.8"
+	android:versionCode="20"
+	android:versionName="1.5.0"
 	android:installLocation="auto" >
 	
 	<uses-sdk
 		android:minSdkVersion="7"
-		android:targetSdkVersion="22" />
+		android:targetSdkVersion="23" />
 	
 	<uses-feature
 		android:name="android.hardware.telephony"
@@ -21,17 +22,15 @@
 	<uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
 	<uses-permission android:name="android.permission.GET_ACCOUNTS" />
 	<uses-permission android:name="android.permission.MANAGE_ACCOUNTS" />
-	<uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
-	<uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
 	
 	<application
 		android:allowBackup="true"
 		android:icon="@drawable/ic_launcher"
-		android:label="@string/app_name"
-		android:theme="@style/app_theme" >
+		android:label="@string/app_name" >
 		<activity
 			android:name=".Student"
 			android:label="@string/app_name"
+			android:theme="@style/app_theme"
 			android:configChanges="keyboardHidden|orientation|screenSize" >
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
@@ -48,25 +47,53 @@
 		</activity>
 		<activity
 			android:name=".Setting"
-			android:label="@string/preference_name" >
+			android:label="@string/setting_name"
+			android:theme="@style/preference_theme"
+			android:configChanges="keyboardHidden|orientation|screenSize"
+			android:parentActivityName=".Student" >
 			<meta-data
 				android:name="android.preference"
 				android:resource="@xml/setting" />
 			<intent-filter>
-				<action android:name="kr.KENNYSOFT.Student.ACCOUNT_SETUP" />
+				<action android:name="android.intent.action.MANAGE_NETWORK_USAGE" />
+				<category android:name="android.intent.category.DEFAULT" />
+			</intent-filter>
+			<intent-filter>
+				<action android:name="kr.KENNYSOFT.Student.Action.SETTING" />
 				<category android:name="android.intent.category.DEFAULT" />
 			</intent-filter>
 		</activity>
 		<activity
 			android:name=".Account"
-			android:label="@string/account_name" >
+			android:label="@string/account_name"
+			android:theme="@style/preference_theme"
+			android:configChanges="keyboardHidden|orientation|screenSize"
+			android:parentActivityName=".Setting" >
 			<meta-data
 				android:name="android.preference"
 				android:resource="@xml/account" />
 			<intent-filter>
-				<action android:name="kr.KENNYSOFT.Student.ACCOUNT_LOGIN" />
+				<action android:name="kr.KENNYSOFT.Student.Action.ACCOUNT" />
+				<category android:name="android.intent.category.DEFAULT" />
+			</intent-filter>
+			<intent-filter>
+				<action android:name="kr.KENNYSOFT.Student.Action.ADD_ACCOUNT" />
+				<category android:name="android.intent.category.DEFAULT" />
+			</intent-filter>
+			<intent-filter>
+				<action android:name="kr.KENNYSOFT.Student.Action.LOGOUT" />
 				<category android:name="android.intent.category.DEFAULT" />
 			</intent-filter>
 		</activity>
+		<service
+		    android:name=".Service.Account" >
+			<intent-filter>
+				<action android:name="android.accounts.AccountAuthenticator" />
+			</intent-filter>
+			<meta-data
+				android:name="android.accounts.AccountAuthenticator"
+				android:resource="@xml/authenticator" />
+		</service>
 	</application>
+
 </manifest>
