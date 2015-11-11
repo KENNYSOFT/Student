@@ -1,7 +1,6 @@
 package kr.KENNYSOFT.Student;
 
 import java.io.BufferedReader;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.net.URL;
@@ -13,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.crypto.Cipher;
@@ -30,6 +28,7 @@ import com.hudomju.swipe.adapter.RecyclerViewAdapter;
 import android.accounts.AccountManager;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -43,8 +42,10 @@ import android.graphics.Bitmap;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.net.Uri;
+import android.net.http.SslError;
 import android.os.AsyncTask;
-import android.os.Build;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
@@ -67,12 +68,16 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
+import android.webkit.JavascriptInterface;
 import android.webkit.MimeTypeMap;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -82,14 +87,17 @@ import android.widget.Toast;
 @SuppressWarnings("deprecation")
 public class Student extends AppCompatActivity
 {
-	boolean mUseZoom,mUseFilter,mUseAutoLogin,mFirstRun,isDrawerShowing,isDrawerAdded,isRegistered,isLogined,isQuiting;
-	int mVersionCode,mToolbarHeight,mNowFolder;
+	static final int ACTION_SEARCH_STUDENT=1;
+	static final int ACTION_SEARCH_TEACHER=2;
+	
+	boolean mUseZoom,mUseFilter,mUseAutoLogin,mFirstRun,isNestedScrollEnding,isDrawerShowing,isDrawerAdded,isRegistered,isLogined,isQuiting;
+	int mVersionCode,mNowFolder;
 	NestedScrollView mNestedScrollView;
 	ProgressBar mProgressBar;
 	SharedPreferences mPref;
+	String mUserId,mPwd,mPhoneNumber;
 	TextView mToolbarTitle,mToolbarSubtitle;
 	Toolbar mToolbar;
-	String mUserId,mPwd,mPhoneNumber;
 	WebView mWebView;
 	
 	ActionBarDrawerToggle mDrawerToggle;
@@ -97,7 +105,7 @@ public class Student extends AppCompatActivity
 	DrawerLayout mDrawerLayout;
 	StudentMenuItemAdapter mDrawerAdapter;
 	SwipeToDismissTouchListener<RecyclerViewAdapter> mSwipeToDismissTouchListener;
-	RecyclerView mDrawerList;
+	RecyclerView mDrawerView;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -112,20 +120,22 @@ public class Student extends AppCompatActivity
 		
 		mToolbarTitle=(TextView)findViewById(R.id.toolbar_title);
 		mToolbarSubtitle=(TextView)findViewById(R.id.toolbar_subtitle);
-		mToolbarTitle.setSelected(true);
-		mToolbarSubtitle.setSelected(true);
 		
 		findViewById(R.id.toolbar_information).setOnClickListener(new View.OnClickListener()
 		{
 			public void onClick(View v)
 			{
-				new AlertDialog.Builder(Student.this).setTitle(mWebView.getTitle()).setMessage(mWebView.getUrl()).setNeutralButton(getString(R.string.action_copy),new DialogInterface.OnClickListener()
+				if(mToolbarSubtitle.getVisibility()==View.VISIBLE)
 				{
-					public void onClick(DialogInterface dialog,int which)
+					new AlertDialog.Builder(Student.this).setTitle(mToolbarTitle.getText()).setMessage(mToolbarSubtitle.getText()).setNeutralButton(getString(R.string.action_copy),new DialogInterface.OnClickListener()
 					{
-						((ClipboardManager)Student.this.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(android.content.ClipData.newPlainText("Student",mWebView.getUrl()));
-					}
-				}).setPositiveButton(R.string.ok,null).show();
+						public void onClick(DialogInterface dialog,int which)
+						{
+							if(VERSION.SDK_INT<VERSION_CODES.HONEYCOMB)((android.text.ClipboardManager)Student.this.getSystemService(Context.CLIPBOARD_SERVICE)).setText(mWebView.getUrl());
+							else ((ClipboardManager)Student.this.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("Student",mWebView.getUrl()));
+						}
+					}).setPositiveButton(R.string.ok,null).show();
+				}
 			}
 		});
 		
@@ -154,18 +164,21 @@ public class Student extends AppCompatActivity
 		mDrawerAdapter.add(new StudentMenuItem(true,false,0,"송죽 학사 메인","home","http://student.gs.hs.kr/student/index.do",""));
 		mDrawerAdapter.add(new StudentMenuItem(true,false,0,"교사 검색","search","http://student.gs.hs.kr/student/searchTeacher.do",""));
 		mDrawerAdapter.add(new StudentMenuItem(true,false,0,"학생 검색","search","http://student.gs.hs.kr/student/searchStudent.do",""));
-		mDrawerAdapter.add(new StudentMenuItem(false,false,0,"학교 홈페이지","globe","http://gs.hs.kr",""));
+		mDrawerAdapter.add(new StudentMenuItem(true,false,0,"학교 홈페이지","globe","https://www.gs.hs.kr/",""));
 		mDrawerFolder=new ArrayList<StudentMenuItemList>();
-		mDrawerList=(RecyclerView)findViewById(R.id.left_list);
-		mDrawerList.setLayoutManager(new LinearLayoutManager(this));
-		mDrawerList.setAdapter(mDrawerAdapter);
-		mDrawerList.addOnItemTouchListener(new SwipeableItemClickListener(this,new OnItemClickListener()
+		mDrawerView=(RecyclerView)findViewById(R.id.drawer);
+		mDrawerView.setLayoutManager(new LinearLayoutManager(this));
+		mDrawerView.setAdapter(mDrawerAdapter);
+		mDrawerView.addOnItemTouchListener(new SwipeableItemClickListener(this,new OnItemClickListener()
 		{
 			public void onItemClick(View view,int position)
 			{
-				if(position==0)mDrawerAdapter.setHeaderNext();
-				else if(position<=mDrawerAdapter.getItemCount()-2)
+				switch(mDrawerAdapter.getItemViewType(position))
 				{
+				case StudentMenuItemAdapter.TYPE_HEADER:
+					mDrawerAdapter.setHeaderNext();
+					break;
+				case StudentMenuItemAdapter.TYPE_ITEM:
 					position--;
 					switch(view.getId())
 					{
@@ -203,10 +216,11 @@ public class Student extends AppCompatActivity
 						}
 						break;
 					}
+					break;
 				}
 			}
 		}));
-		mDrawerList.setOnTouchListener(mSwipeToDismissTouchListener=new SwipeToDismissTouchListener<RecyclerViewAdapter>(new RecyclerViewAdapter(mDrawerList),new SwipeToDismissTouchListener.DismissCallbacks<RecyclerViewAdapter>()
+		mDrawerView.setOnTouchListener(mSwipeToDismissTouchListener=new SwipeToDismissTouchListener<RecyclerViewAdapter>(new RecyclerViewAdapter(mDrawerView),new SwipeToDismissTouchListener.DismissCallbacks<RecyclerViewAdapter>()
 		{
 			public boolean canDismiss(int position)
 			{
@@ -223,18 +237,20 @@ public class Student extends AppCompatActivity
 				edit.commit();
 			}
 		}));
-		mDrawerList.setOnScrollListener((RecyclerView.OnScrollListener)mSwipeToDismissTouchListener.makeScrollListener());
+		mDrawerView.setOnScrollListener((RecyclerView.OnScrollListener)mSwipeToDismissTouchListener.makeScrollListener());
 		
 		mProgressBar=(ProgressBar)findViewById(R.id.progressbar);
 		
 		mNestedScrollView=(NestedScrollView)findViewById(R.id.nestedscrollview);
 		
 		mWebView=(WebView)findViewById(R.id.webview);
+		if(VERSION.SDK_INT>=VERSION_CODES.HONEYCOMB)mWebView.getSettings().setDisplayZoomControls(false);
 		mWebView.getSettings().setSavePassword(false);
 		mWebView.getSettings().setDomStorageEnabled(true);
 		mWebView.getSettings().setDatabaseEnabled(true);
 		mWebView.getSettings().setDatabasePath(this.getApplicationContext().getDir("database",Context.MODE_PRIVATE).getPath());
 		mWebView.getSettings().setJavaScriptEnabled(true);
+		mWebView.addJavascriptInterface(this,"student");
 		try
 		{
 			mWebView.getSettings().setUserAgentString(mWebView.getSettings().getUserAgentString()+" Student/"+this.getPackageManager().getPackageInfo(this.getPackageName(),PackageManager.GET_META_DATA).versionName);
@@ -247,8 +263,12 @@ public class Student extends AppCompatActivity
 			@Override
 			public void onProgressChanged(WebView webview,int progress)
 			{
-				if(progress<mProgressBar.getMax())mProgressBar.setProgress(progress);
-				else mProgressBar.setProgress(0);
+				if(progress<mProgressBar.getMax())
+				{
+					mProgressBar.setVisibility(View.VISIBLE);
+					mProgressBar.setProgress(progress);
+				}
+				else mProgressBar.setVisibility(View.INVISIBLE);
 			}
 		});
 		mWebView.setDownloadListener(new DownloadListener()
@@ -258,16 +278,20 @@ public class Student extends AppCompatActivity
 				if(url.equals("http://student.gs.hs.kr/student/css/fonts/NanumGothic.ttf"))Toast.makeText(Student.this,getString(R.string.download_pc_only),Toast.LENGTH_SHORT).show();
 				else
 				{
-					try
+					if(VERSION.SDK_INT<VERSION_CODES.GINGERBREAD)Toast.makeText(Student.this,getString(R.string.download_unavailable),Toast.LENGTH_SHORT).show();
+					else
 					{
-						String fileName=URLDecoder.decode(contentDisposition.substring(20,contentDisposition.length()),"UTF-8").replace("+"," "),mimeType=null;
-						Toast.makeText(Student.this,getString(R.string.download_starting),Toast.LENGTH_SHORT).show();
-						if(fileName.substring(fileName.lastIndexOf(".")+1).toLowerCase(Locale.getDefault()).equals("hwp"))mimeType="application/x-hwp";
-						else mimeType=MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileName.substring(fileName.lastIndexOf(".")+1).toLowerCase(Locale.getDefault()));
-						((DownloadManager)Student.this.getSystemService(Context.DOWNLOAD_SERVICE)).enqueue(new DownloadManager.Request(Uri.parse(url)).addRequestHeader("Cookie",CookieManager.getInstance().getCookie("http://student.gs.hs.kr/student/index.do")).setDescription(getString(R.string.app_name)).setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,fileName).setMimeType(mimeType).setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED));
-					}
-					catch(Exception e)
-					{
+						try
+						{
+							String fileName=URLDecoder.decode(contentDisposition.substring(20,contentDisposition.length()),"UTF-8").replace("+"," "),mimeType=null;
+							Toast.makeText(Student.this,getString(R.string.download_starting),Toast.LENGTH_SHORT).show();
+							if(fileName.substring(fileName.lastIndexOf(".")+1).toLowerCase(Locale.getDefault()).equals("hwp"))mimeType="application/x-hwp";
+							else mimeType=MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileName.substring(fileName.lastIndexOf(".")+1).toLowerCase(Locale.getDefault()));
+							((DownloadManager)Student.this.getSystemService(Context.DOWNLOAD_SERVICE)).enqueue(new DownloadManager.Request(Uri.parse(url)).addRequestHeader("Cookie",CookieManager.getInstance().getCookie("http://student.gs.hs.kr/student/index.do")).setDescription(getString(R.string.app_name)).setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,fileName).setMimeType(mimeType).setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED));
+						}
+						catch(Exception e)
+						{
+						}
 					}
 				}
 			}
@@ -275,8 +299,32 @@ public class Student extends AppCompatActivity
 		mWebView.setWebViewClient(new WebViewClient()
 		{
 			@Override
+			public boolean shouldOverrideUrlLoading(WebView view,String url)
+			{
+				if(url.startsWith("http://student.gs.hs.kr"))return false;
+				else
+				{
+					startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));
+					return true;
+				}
+			}
+			
+			@Override
+			public void onReceivedSslError(WebView view,SslErrorHandler handler,SslError error)
+			{
+				if(error.getUrl().startsWith("http://student.gs.hs.kr"))handler.proceed();
+				else
+				{
+					startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(error.getUrl())));
+					handler.cancel();
+				}
+			}
+			
+			@Override
 			public void onPageStarted(WebView view,String url,Bitmap favicon)
 			{
+				mToolbarTitle.setText(R.string.action_loading);
+				mToolbarSubtitle.setVisibility(View.GONE);
 				mDrawerAdapter.notifyDataSetChanged();
 				if(url.equals("http://student.gs.hs.kr/student/"))view.loadUrl("http://student.gs.hs.kr/student/index.do");
 				if(url.equals("http://student.gs.hs.kr/student/logout.do"))finish();
@@ -285,7 +333,8 @@ public class Student extends AppCompatActivity
 			@Override
 			public void onPageFinished(WebView view,String url)
 			{
-				mNestedScrollView.scrollTo(0,0);
+				if(url.equals("http://student.gs.hs.kr/student/login.do"))mWebView.setLayoutParams(new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
+				else mWebView.setLayoutParams(new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT));
 				mToolbarTitle.setText(mWebView.getTitle());
 				mToolbarSubtitle.setVisibility(View.VISIBLE);
 				mToolbarSubtitle.setText(mWebView.getUrl());
@@ -295,7 +344,7 @@ public class Student extends AppCompatActivity
 					mWebView.clearHistory();
 					if(isRegistered)
 					{
-						unregisterReceiver(broadcastReceiver);
+						unregisterReceiver(mBroadcastReceiver);
 						isRegistered=false;
 					}
 					new StudentURLConnection(Student.this,StudentURLConnection.TYPE_LEFTMENU).execute("http://student.gs.hs.kr/student/index.do");
@@ -303,19 +352,38 @@ public class Student extends AppCompatActivity
 				}
 				if(url.startsWith("http://student.gs.hs.kr/student/well/myGoodsList.do")||url.startsWith("http://student.gs.hs.kr/student/well/goodsInfo.do")||url.startsWith("http://student.gs.hs.kr/student/well/goodsUse.do"))
 				{
-					if(Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT)mWebView.loadUrl("javascript:layerPopup=function layerPopup(url,title){window.location.href=url;}");
-					else mWebView.evaluateJavascript("layerPopup=function layerPopup(url,title){window.location.href=url;}",null);
+					if(VERSION.SDK_INT<VERSION_CODES.KITKAT)mWebView.loadUrl("javascript:layerPopup=function(url,title){window.location.href=url;}");
+					else mWebView.evaluateJavascript("layerPopup=function(url,title){window.location.href=url;}",null);
 				}
-				if(Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT)
+				if(url.startsWith("http://student.gs.hs.kr/student/sms/sendList.do"))
 				{
-					mWebView.loadUrl("javascript:$('html, body').stop();");
+					if(VERSION.SDK_INT<VERSION_CODES.KITKAT)mWebView.loadUrl("javascript:for(var i=1;i<document.getElementsByClassName('item5').length;++i)document.getElementsByClassName('item5')[i].getElementsByTagName('xmp')[0].innerHTML=document.getElementsByClassName('item5')[i].title");
+					else mWebView.evaluateJavascript("for(var i=1;i<document.getElementsByClassName('item5').length;++i)document.getElementsByClassName('item5')[i].getElementsByTagName('xmp')[0].innerHTML=document.getElementsByClassName('item5')[i].title",null);
+				}
+				if(Student.this.getPackageManager().queryIntentActivities(new Intent("kr.KENNYSOFT.Student.Action.SEARCH_STUDENT"),PackageManager.MATCH_DEFAULT_ONLY).size()>0)
+				{
+					if(VERSION.SDK_INT<VERSION_CODES.KITKAT)mWebView.loadUrl("javascript:studentPopup=function(id,grade,callback){var isGrade='Y';if(isNull(grade)){isGrade='N';}var url=contextPath+'/searchStudent.do?target='+id+'&grade='+grade+'&isGrade='+isGrade+'&callback='+callback;window.student.searchStudent(url,'학생검색');return false;}");
+					else mWebView.evaluateJavascript("studentPopup=function(id,grade,callback){var isGrade='Y';if(isNull(grade)){isGrade='N';}var url=contextPath+'/searchStudent.do?target='+id+'&grade='+grade+'&isGrade='+isGrade+'&callback='+callback;window.student.searchStudent(url,'학생검색');return false;}",null);
+				}
+				if(Student.this.getPackageManager().queryIntentActivities(new Intent("kr.KENNYSOFT.Student.Action.SEARCH_TEACHER"),PackageManager.MATCH_DEFAULT_ONLY).size()>0)
+				{
+					if(VERSION.SDK_INT<VERSION_CODES.KITKAT)mWebView.loadUrl("javascript:teacherPopup=function(id){var url=contextPath+'/searchTeacher.do?target='+id;window.student.searchTeacher(url,'교사검색');return false;}");
+					else mWebView.evaluateJavascript("teacherPopup=function(id){var url=contextPath+'/searchTeacher.do?target='+id;window.student.searchTeacher(url,'교사검색');return false;}",null);
+				}
+				if(VERSION.SDK_INT<VERSION_CODES.KITKAT)
+				{
+					mWebView.loadUrl("javascript:$('body').stop();");
+					mWebView.loadUrl("javascript:$('ol').stop();");
+					mWebView.loadUrl("javascript:document.getElementById('newsToggle').remove();");
 					mWebView.loadUrl("javascript:document.getElementsByClassName('navbar navbar-inverse navbar-fixed-top')[0].parentNode.removeChild(document.getElementsByClassName('navbar navbar-inverse navbar-fixed-top')[0]);");
 					mWebView.loadUrl("javascript:document.body.style.paddingTop='0px';");
 					mWebView.loadUrl("javascript:document.getElementsByClassName('span3 bs-docs-sidebar')[0].parentNode.removeChild(document.getElementsByClassName('span3 bs-docs-sidebar')[0]);");
 				}
 				else
 				{
-					mWebView.evaluateJavascript("$('html, body').stop();",null);
+					mWebView.evaluateJavascript("$('body').stop();",null);
+					mWebView.evaluateJavascript("$('ol').stop();",null);
+					mWebView.evaluateJavascript("document.getElementById('newsToggle').remove();",null);
 					mWebView.evaluateJavascript("document.getElementsByClassName('navbar navbar-inverse navbar-fixed-top')[0].parentNode.removeChild(document.getElementsByClassName('navbar navbar-inverse navbar-fixed-top')[0]);",null);
 					mWebView.evaluateJavascript("document.body.style.paddingTop='0px';",null);
 					mWebView.evaluateJavascript("document.getElementsByClassName('span3 bs-docs-sidebar')[0].parentNode.removeChild(document.getElementsByClassName('span3 bs-docs-sidebar')[0]);",null);
@@ -389,11 +457,11 @@ public class Student extends AppCompatActivity
 		{
 			new AlertDialog.Builder(this).setIcon(R.drawable.ic_launcher).setTitle(R.string.first_title).setMessage(R.string.first_message).setPositiveButton(R.string.first_agree,new DialogInterface.OnClickListener()
 			{
-				public void onClick(DialogInterface dialog,int whichButton)
+				public void onClick(DialogInterface dialog,int which)
 				{
 					new AlertDialog.Builder(Student.this).setIcon(R.drawable.ic_launcher).setTitle(R.string.second_title).setMessage(R.string.second_message).setPositiveButton(R.string.ok,new DialogInterface.OnClickListener()
 					{
-						public void onClick(DialogInterface dialog,int whichButton)
+						public void onClick(DialogInterface dialog,int which)
 						{
 							startActivity(new Intent("kr.KENNYSOFT.Student.Action.ACCOUNT"));
 						}
@@ -404,7 +472,7 @@ public class Student extends AppCompatActivity
 				}
 			}).setNegativeButton(R.string.first_disagree,new DialogInterface.OnClickListener()
 			{
-				public void onClick(DialogInterface dialog,int whichButton)
+				public void onClick(DialogInterface dialog,int which)
 				{
 					finish();
 				}
@@ -420,7 +488,7 @@ public class Student extends AppCompatActivity
 		
 		IntentFilter intentFilter=new IntentFilter("android.provider.Telephony.SMS_RECEIVED");
 		intentFilter.setPriority(2147483647);
-		registerReceiver(broadcastReceiver,intentFilter);
+		registerReceiver(mBroadcastReceiver,intentFilter);
 		isRegistered=true;
 	}
 	
@@ -432,7 +500,6 @@ public class Student extends AppCompatActivity
 		super.onResume();
 		mUseZoom=mPref.getBoolean("useZoom",false);
 		mWebView.getSettings().setBuiltInZoomControls(mUseZoom);
-		mWebView.getSettings().setDisplayZoomControls(false);
 		mUseFilter=mPref.getBoolean("useFilter",true);
 		mUserId=mPref.getString("userId","");
 		mPwd=mPref.getString("pwd","");
@@ -449,7 +516,7 @@ public class Student extends AppCompatActivity
 			mDrawerAdapter.add(new StudentMenuItem(true,false,0,"송죽 학사 메인","home","http://student.gs.hs.kr/student/index.do",""));
 			mDrawerAdapter.add(new StudentMenuItem(true,false,0,"교사 검색","search","http://student.gs.hs.kr/student/searchTeacher.do",""));
 			mDrawerAdapter.add(new StudentMenuItem(true,false,0,"학생 검색","search","http://student.gs.hs.kr/student/searchStudent.do",""));
-			mDrawerAdapter.add(new StudentMenuItem(false,false,0,"학교 홈페이지","globe","http://gs.hs.kr",""));
+			mDrawerAdapter.add(new StudentMenuItem(false,false,0,"학교 홈페이지","globe","https://www.gs.hs.kr/",""));
 			mDrawerFolder.clear();
 			new StudentURLConnection(this,StudentURLConnection.TYPE_LEFTMENU).execute("http://student.gs.hs.kr/student/index.do");
 			SharedPreferences.Editor edit=mPref.edit();
@@ -464,21 +531,22 @@ public class Student extends AppCompatActivity
 		super.onDestroy();
 		if(isRegistered)
 		{
-			unregisterReceiver(broadcastReceiver);
+			unregisterReceiver(mBroadcastReceiver);
 			isRegistered=false;
 		}
 	}
 	
 	@Override
-	public boolean onKeyDown(int keyCode,KeyEvent event)
+	public boolean onKeyUp(int keyCode,KeyEvent event)
 	{
 		switch(keyCode)
 		{
 		case KeyEvent.KEYCODE_BACK:
-			if(isDrawerShowing||mWebView.canGoBack())return true;
-			else
+			if((event.getFlags()&KeyEvent.FLAG_CANCELED)==0)
 			{
-				if(!isQuiting)
+				if(isDrawerShowing)mDrawerLayout.closeDrawer(GravityCompat.START);
+				else if(mWebView.canGoBack())mWebView.goBack();
+				else if(!isQuiting)
 				{
 					Toast.makeText(Student.this,R.string.quit_ing,Toast.LENGTH_SHORT).show();
 					isQuiting=true;
@@ -491,27 +559,6 @@ public class Student extends AppCompatActivity
 					},3000);
 				}
 				else finish();
-				return true;
-			}
-		default:
-			return super.onKeyDown(keyCode,event);
-		}
-	}
-	
-	@Override
-	public boolean onKeyUp(int keyCode,KeyEvent event)
-	{
-		switch(keyCode)
-		{
-		case KeyEvent.KEYCODE_BACK:
-			if(isDrawerShowing)
-			{
-				mDrawerLayout.closeDrawer(GravityCompat.START);
-				return true;
-			}
-			else if(mWebView.canGoBack())
-			{
-				mWebView.goBack();
 				return true;
 			}
 			else return super.onKeyDown(keyCode,event);
@@ -568,7 +615,7 @@ public class Student extends AppCompatActivity
 		isLogined=true;
 		if(isRegistered)
 		{
-			unregisterReceiver(broadcastReceiver);
+			unregisterReceiver(mBroadcastReceiver);
 			isRegistered=false;
 		}
 		mDrawerAdapter.setFooterText(String.format(getString(R.string.drawer_status_2),mUserId));
@@ -585,63 +632,89 @@ public class Student extends AppCompatActivity
 			String[] values=line.split(Pattern.quote("+"));
 			if(values[1].startsWith("-"))
 			{
-				String convertedTitle;
-				if(values[1].startsWith("--"))convertedTitle=values[1].replace("--","	");
-				else convertedTitle=values[1].replace("-","");
-				mDrawerFolder.get(mNowFolder-1).add(new StudentMenuItem(true,false,mNowFolder,convertedTitle,"",values[0],""));
+				String title;
+				if(values[1].startsWith("--"))title=values[1].replace("--","	");
+				else title=values[1].replace("-","");
+				mDrawerFolder.get(mNowFolder-1).add(new StudentMenuItem(true,false,mNowFolder,title,"",values[0],""));
 			}
 			else
 			{
-				String safeIcon="",safeColor="";
-				if(values.length>=3)safeIcon=values[2];
-				if(values.length>=4)safeColor=values[3];
-				mDrawerAdapter.add(new StudentMenuItem(false,false,++mNowFolder,values[1],safeIcon,values[0],safeColor));
+				String icon="",color="";
+				if(values.length>=3)icon=values[2];
+				if(values.length>=4)color=values[3];
+				mDrawerAdapter.add(new StudentMenuItem(false,false,++mNowFolder,values[1],icon,values[0],color));
 				mDrawerFolder.add(new StudentMenuItemList(this));
 			}
 		}
 		isDrawerAdded=true;
 	}
 	
-	BroadcastReceiver broadcastReceiver=new BroadcastReceiver()
+	@JavascriptInterface
+	public void searchStudent(String url,String title)
+	{
+		startActivityForResult(new Intent("kr.KENNYSOFT.Student.Action.SEARCH_STUDENT").putExtra("title",title).putExtra("cookie",CookieManager.getInstance().getCookie("http://student.gs.hs.kr/student/index.do")).putExtra("url",url),ACTION_SEARCH_STUDENT);
+	}
+	
+	@JavascriptInterface
+	public void searchTeacher(String url,String title)
+	{
+		startActivityForResult(new Intent("kr.KENNYSOFT.Student.Action.SEARCH_TEACHER").putExtra("title",title).putExtra("cookie",CookieManager.getInstance().getCookie("http://student.gs.hs.kr/student/index.do")).putExtra("url",url),ACTION_SEARCH_TEACHER);
+	}
+	
+	@Override
+	protected void onActivityResult(int requestCode,int resultCode,Intent intent)
+	{
+		super.onActivityResult(requestCode,resultCode,intent);
+		if(resultCode!=RESULT_OK)return;
+		switch(requestCode)
+		{
+		case ACTION_SEARCH_STUDENT:
+			for(String line:intent.getStringArrayExtra("data"))
+			{
+				if(VERSION.SDK_INT<VERSION_CODES.KITKAT)mWebView.loadUrl("javascript:studentList.studentSelect('',"+line+");");
+				else mWebView.evaluateJavascript("studentList.studentSelect('',"+line+");",null);
+			}
+			break;
+		case ACTION_SEARCH_TEACHER:
+			if(VERSION.SDK_INT<VERSION_CODES.KITKAT)mWebView.loadUrl("javascript:teacherSelect('',"+intent.getStringExtra("data")+");");
+			else mWebView.evaluateJavascript("teacherSelect('',"+intent.getStringExtra("data")+");",null);
+			break;
+		}
+	}
+	
+	BroadcastReceiver mBroadcastReceiver=new BroadcastReceiver()
 	{
 		public void onReceive(Context context,Intent intent)
 		{
-			Bundle extras=intent.getExtras();
-			if(extras==null)return;
-			
-			Object[] pdus=(Object[])extras.get("pdus");
-			if(pdus==null)return;
-			
-			SmsMessage[] msgs=new SmsMessage[pdus.length];
-			
-			for(int i=0;i<pdus.length;i++)
+			try
 			{
-				msgs[i]=SmsMessage.createFromPdu((byte[])pdus[i]);
-				
-				final String address=msgs[i].getOriginatingAddress();
-				if(mUseFilter&&!address.equals("0312590420"))continue;
-				
-				final String body=msgs[i].getDisplayMessageBody();
-				String accessCode=null;
-				if(body.length()==32&&body.startsWith("[송죽]["))accessCode=body.substring(5,10);
-				else if(body.length()==40&&body.startsWith("[Web발신]\n[송죽]["))accessCode=body.substring(13,18);
-				else continue;
-				
-				if(Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT)
+				Object[] pdus=(Object[])intent.getExtras().get("pdus");
+				for(int i=0;i<pdus.length;i++)
 				{
-					mWebView.loadUrl("javascript:document.getElementById('accessCode').value='"+accessCode+"';");
-					mWebView.loadUrl("javascript:document.getElementsByClassName('btn btn-large btn-primary')[0].click();");
+					SmsMessage msg=SmsMessage.createFromPdu((byte[])pdus[i]);
+					String address=msg.getOriginatingAddress();
+					if(mUseFilter&&!address.equals("0312590420"))continue;
+					String body=msg.getDisplayMessageBody(),accessCode=null;
+					if(body.length()==32&&body.startsWith("[송죽]["))accessCode=body.substring(5,10);
+					else if(body.length()==40&&body.startsWith("[Web발신]\n[송죽]["))accessCode=body.substring(13,18);
+					else continue;
+					if(VERSION.SDK_INT<VERSION_CODES.KITKAT)
+					{
+						mWebView.loadUrl("javascript:document.getElementById('accessCode').value='"+accessCode+"';");
+						mWebView.loadUrl("javascript:document.getElementsByClassName('btn btn-large btn-primary')[0].click();");
+					}
+					else
+					{
+						mWebView.evaluateJavascript("document.getElementById('accessCode').value='"+accessCode+"';",null);
+						mWebView.evaluateJavascript("document.getElementsByClassName('btn btn-large btn-primary')[0].click();",null);
+					}
+					unregisterReceiver(mBroadcastReceiver);
+					isRegistered=false;
+					break;
 				}
-				else
-				{
-					mWebView.evaluateJavascript("document.getElementById('accessCode').value='"+accessCode+"';",null);
-					mWebView.evaluateJavascript("document.getElementsByClassName('btn btn-large btn-primary')[0].click();",null);
-				}
-				
-				unregisterReceiver(broadcastReceiver);
-				isRegistered=false;
-				
-				return;
+			}
+			catch(Exception e)
+			{
 			}
 		}
 	};
@@ -663,18 +736,15 @@ class StudentURLConnection extends AsyncTask<String,Void,String>
 	
 	protected String doInBackground(String... urls)
 	{
-		String html="";
+		String html="",line;
 		try
 		{
 			CookieManager cookieManager=CookieManager.getInstance();
 			URLConnection connection=new URL(urls[0]).openConnection();
 			connection.setRequestProperty("Cookie",cookieManager.getCookie(urls[0]));
-			InputStream is=connection.getInputStream();
-			BufferedReader in=new BufferedReader(new InputStreamReader(is));
-			String line="";
+			BufferedReader in=new BufferedReader(new InputStreamReader(connection.getInputStream()));
 			while((line=in.readLine())!=null)html=html+line+"\n";
-			Map<String,List<String>> headerFields=connection.getHeaderFields();
-			List<String> cookiesHeader=headerFields.get("Set-Cookie");
+			List<String> cookiesHeader=connection.getHeaderFields().get("Set-Cookie");
 			if(cookiesHeader!=null)for(String cookie:cookiesHeader)cookieManager.setCookie("student.gs.hs.kr",cookie);
 		}
 		catch(Exception e)
@@ -694,7 +764,7 @@ class StudentURLConnection extends AsyncTask<String,Void,String>
 			{
 				new AlertDialog.Builder(mContext).setTitle(mContext.getString(R.string.login_error)).setMessage(html.substring(html.indexOf("message\":")+10,html.length()-6)).setPositiveButton(android.R.string.ok,new DialogInterface.OnClickListener()
 				{
-					public void onClick(DialogInterface dialog,int whichButton)
+					public void onClick(DialogInterface dialog,int which)
 					{
 						mContext.startActivity(new Intent("kr.KENNYSOFT.Student.Action.LOGOUT"));
 					}
@@ -704,7 +774,7 @@ class StudentURLConnection extends AsyncTask<String,Void,String>
 			{
 				new AlertDialog.Builder(mContext).setTitle(mContext.getString(R.string.login_failed)).setMessage(mContext.getString(R.string.login_failed_message)).setPositiveButton(android.R.string.ok,new DialogInterface.OnClickListener()
 				{
-					public void onClick(DialogInterface dialog,int whichButton)
+					public void onClick(DialogInterface dialog,int which)
 					{
 						mContext.startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
 					}
@@ -716,7 +786,7 @@ class StudentURLConnection extends AsyncTask<String,Void,String>
 			Document document=Jsoup.parse(html);
 			for(Element element:document.select("div.navbar.navbar-inverse.navbar-fixed-top").first().getElementsByTag("a"))
 			{
-				if(element.className().equals("brand"))menu=menu+"+"+element.text()+"\n";
+				if(element.className().equals("brand"))menu=menu+"+"+element.text()+"++green\n";
 				else menu=menu+"http://student.gs.hs.kr"+element.attr("href")+"+-"+element.text()+"\n";
 			}
 			for(Element element:document.select("div.accordion.leftMenu div.accordion-group"))
@@ -808,12 +878,15 @@ class StudentMenuItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 	StudentMenuItemList mDataSet;
 	String mHeaderSeason[]={"spring","summer","fall","winter"},mFooterText;
 	
-	final int TYPE_HEADER=0,TYPE_ITEM=1,TYPE_FOOTER=2;
+	static final int TYPE_HEADER=0;
+	static final int TYPE_ITEM=1;
+	static final int TYPE_FOOTER=2;
 	
 	StudentMenuItemAdapter(Context context)
 	{
 		mContext=context;
 		mDataSet=new StudentMenuItemList(mContext);
+		mFooterText=mContext.getString(R.string.drawer_status_0);
 	}
 	
 	class StudentMenuHeaderViewHolder extends RecyclerView.ViewHolder
@@ -891,13 +964,18 @@ class StudentMenuItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 	private void onBindItemView(StudentMenuItemViewHolder holder,int position)
 	{
 		ColorMatrix inverter=new ColorMatrix(new float[]{-1,0,0,0,255,0,-1,0,0,255,0,0,-1,0,255,0,0,0,1,0}),multiplier=new ColorMatrix();
-		holder.mIcon.setImageResource(mContext.getResources().getIdentifier("glyphicons_"+mDataSet.get(position).Icon,"drawable",mContext.getPackageName()));
+		if(mContext.getResources().getIdentifier("glyphicons_"+mDataSet.get(position).Icon,"drawable",mContext.getPackageName())>0)holder.mIcon.setImageResource(mContext.getResources().getIdentifier("glyphicons_"+mDataSet.get(position).Icon,"drawable",mContext.getPackageName()));
+		else holder.mIcon.setImageDrawable(null);
 		holder.mTitle.setText(mDataSet.get(position).Title);
 		if(mDataSet.get(position).Link.length()>0)
 		{
 			if(((Student)mContext).mWebView.getUrl()!=null&&((Student)mContext).mWebView.getUrl().startsWith(mDataSet.get(position).Link))
 			{
-				holder.mListItem.setBackgroundResource(R.color.menu_bg_active_item);
+				if(mDataSet.get(position).Color.length()==0)holder.mListItem.setBackgroundResource(R.color.menu_bg_active_item);
+				else if(mDataSet.get(position).Color.equals("red"))holder.mListItem.setBackgroundResource(R.color.gs_bg_red_active);
+				else if(mDataSet.get(position).Color.equals("blue"))holder.mListItem.setBackgroundResource(R.color.gs_bg_blue_active);
+				else if(mDataSet.get(position).Color.equals("yellow"))holder.mListItem.setBackgroundResource(R.color.gs_bg_yellow_active);
+				else if(mDataSet.get(position).Color.equals("green"))holder.mListItem.setBackgroundResource(R.color.gs_bg_green_active);
 				multiplier.setScale(((mContext.getResources().getColor(R.color.color_primary_dark)&0xff0000)>>16)/255f*0.9f,((mContext.getResources().getColor(R.color.color_primary_dark)&0x00ff00)>>8)/255f*0.9f,((mContext.getResources().getColor(R.color.color_primary_dark)&0x0000ff)>>0)/255f*0.9f,1f);
 				multiplier.preConcat(inverter);
 				holder.mIcon.setColorFilter(new ColorMatrixColorFilter(multiplier.getArray()));
@@ -905,7 +983,11 @@ class StudentMenuItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 			}
 			else
 			{
-				holder.mListItem.setBackgroundResource(R.color.menu_bg_none);
+				if(mDataSet.get(position).Color.length()==0)holder.mListItem.setBackgroundResource(R.color.menu_bg_none);
+				else if(mDataSet.get(position).Color.equals("red"))holder.mListItem.setBackgroundResource(R.color.gs_bg_red);
+				else if(mDataSet.get(position).Color.equals("blue"))holder.mListItem.setBackgroundResource(R.color.gs_bg_blue);
+				else if(mDataSet.get(position).Color.equals("yellow"))holder.mListItem.setBackgroundResource(R.color.gs_bg_yellow);
+				else if(mDataSet.get(position).Color.equals("green"))holder.mListItem.setBackgroundResource(R.color.gs_bg_green);
 				multiplier.setScale(0.4f,0.4f,0.4f,1f);
 				multiplier.preConcat(inverter);
 				holder.mIcon.setColorFilter(new ColorMatrixColorFilter(multiplier.getArray()));

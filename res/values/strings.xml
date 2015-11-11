@@ -2,7 +2,7 @@
 <resources>
 
 	<string name="app_name">송죽 학사</string>
-	<string name="full_name">송죽 학사 v1.5.0 [20]</string>
+	<string name="full_name">송죽 학사 v1.6.0 [21]</string>
 	<string name="setting_name">설정</string>
 	<string name="account_name">계정</string>
 	<string name="copyright">Copyright © 2013-2015 KENNYSOFT. All Rights Reserved.</string>
@@ -10,6 +10,7 @@
 	<string name="ok">확인</string>
 	<string name="cancel">취소</string>
 	
+	<string name="action_loading">로드 중...</string>
 	<string name="action_copy">URL 복사</string>
 	<string name="action_refresh">새로고침</string>
 	<string name="action_setting">설정</string>
@@ -20,13 +21,14 @@
 	<string name="login_failed_message">Wi-Fi 상태를 확인해 주십시오.</string>
 	
 	<string name="download_pc_only">PC에서만 지원됩니다.</string>
+	<string name="download_unavailable">Android 2.2 이하에서는 파일 다운로드 기능이 지원되지 않습니다.</string>
 	<string name="download_starting">다운로드 시작중...</string>
 	
 	<string name="drawer_status_0">자동 로그인을 사용하지 않음</string>
 	<string name="drawer_status_1">로그인되지 않음</string>
 	<string name="drawer_status_2">%s 계정으로 자동 로그인됨</string>
-	<string name="drawer_open">네비게이션 드로어 열기</string>
-	<string name="drawer_close">네비게이션 드로어 닫기</string>
+	<string name="drawer_open">내비게이션 드로어 열기</string>
+	<string name="drawer_close">내비게이션 드로어 닫기</string>
 	<string name="drawer_deleted">삭제됨</string>
 	<string name="drawer_undo">실행취소</string>
 	<string name="drawer_login_needed">로그인이 필요합니다.</string>
@@ -112,8 +114,24 @@ Unless required by applicable law or agreed to in writing, software distributed 
 	</string>
 	
 	<string name="update">
+	<b>v1.6.0</b> [21] <i>(15.11.11)</i>\n
+	* 스크롤 동작을 개선하였습니다.\n
+	* 자동 로그인을 사용하지 않을 때 로그인 화면 및 로그인 상태가 보이지 않던 오류를 수정하였습니다.\n
+	* 일부 메뉴 항목에서 색상이 제대로 보이지 않던 오류를 수정하였습니다.\n
+	* 액션바에서 흐르는 효과를 제거하였습니다.\n
+	* Support Library v23.1을 사용하도록 변경하였습니다.\n
+	* 메시지 수신 목록에서 내용이 모두 표시되도록 변경하였습니다.\n
+	* 로드 중 프로그레스 바에 배경색을 추가하였습니다.\n
+	* 외부 페이지는 다른 브라우저에서 처리하도록 변경하였습니다.\n
+	* 외래어 표기법에 맞추어 일부 설명을 수정하였습니다.\n
+	* 삼성 멀티 윈도우 지원을 추가하였습니다.\n
+	* [BACK] 버튼의 동작을 일부 변경하였습니다.\n
+	* [Android 2.3-] 실행시 발생하던 오류를 수정하였습니다.\n
+	* [Android 2.3-] URL 복사시 발생하던 오류를 수정하였습니다.\n
+	* [Android 2.2-] 다운로드 시도시 발생하던 오류를 수정하였습니다.\n\n
 	<b>v1.5.0</b> [20] <i>(15.09.09)</i>\n
-	* 송죽 학사의 메뉴를 네비게이션 드로어에서 접근할 수 있도록 변경하였습니다.\n
+	* Android 6.0 지원을 추가하였습니다.\n
+	* 송죽 학사의 메뉴를 내비게이션 드로어에서 접근할 수 있도록 변경하였습니다.\n
 	&#160;&#160;# 원하지 않는 메뉴는 드래그하여 삭제할 수 있습니다.\n
 	* 시설사용신청을 별도의 페이지에서 표시하도록 변경하였습니다.\n
 	* 기본 색상을 Material Green으로 변경하였습니다.\n
@@ -123,13 +141,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 	* 당겨서 새로고침 기능을 제거하였습니다.\n
 	* 액션바가 나타나고 사라지는 방법을 변경하였습니다.\n
 	* 액션 버튼의 위치를 오버플로 메뉴 안으로 변경하였습니다.\n
-	* 네비게이션 드로어가 액션바보다 위에 나타나도록 변경하였습니다.\n
-	* 네비게이션 드로어에서 항목을 스크롤할 때 배너와 상태 메시지도 함께 스크롤되도록 변경하였습니다.\n
-	* 네비게이션 드로어의 배너 사진이 변경될 때 그라데이션 효과가 적용되도록 변경하였습니다.\n
-	* 안드로이드 시스템 계정 관리 기능이 추가되었습니다.\n\n
+	* 내비게이션 드로어가 액션바보다 위에 나타나도록 변경하였습니다.\n
+	* 내비게이션 드로어에서 항목을 스크롤할 때 배너와 상태 메시지도 함께 스크롤되도록 변경하였습니다.\n
+	* 내비게이션 드로어의 배너 사진이 변경될 때 그라데이션 효과가 적용되도록 변경하였습니다.\n
+	* 안드로이드 시스템 계정 관리 기능을 추가하였습니다.\n\n
 	<b>v1.2.8</b> [19] <i>(15.03.21)</i>\n
-	* 네비게이션 드로어의 디자인을 변경하였습니다.\n
-	* 네비게이션 드로어가 열린 상태일 경우 발생하던 오류를 수정하였습니다.\n
+	* 내비게이션 드로어의 디자인을 변경하였습니다.\n
+	* 내비게이션 드로어가 열린 상태일 경우 발생하던 오류를 수정하였습니다.\n
 	* 새로고침 버튼을 제거하였습니다.\n
 	* [Android 2.1-] VelocityTracker에서 발생하던 오류를 수정하였습니다.\n\n
 	<b>v1.2.5</b> [18] <i>(15.03.20)</i>\n
@@ -157,11 +175,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 	* 로그인 시도시 네트워크 부분에서 오류가 발생하는 경우의 처리를 개선하였습니다.\n
 	* 설정 화면에서 액션바를 제거하였습니다.\n
 	* Support Library 사용을 위해 최소 지원 버전을 Android 2.1으로 변경하였습니다.\n
-	* [Android 2.3-] 실행시 강제 종료되던 오류를 수정하였습니다.\n
+	* [Android 2.3-] 실행시 발생하던 오류를 수정하였습니다.\n
 	* [Android 2.3-] 액션바를 사용할 수 있도록 개선하였습니다.\n
 	* [Android 2.0-] 지원이 중단되었습니다.\n\n
 	<b>v1.0.1</b> [15] <i>(14.07.14)</i>\n
-	* 전화 관련 기능이 없는 기기에서의 오류를 수정하였습니다.\n
+	* 전화 관련 기능이 없는 기기에서 발생하던 오류를 수정하였습니다.\n
 	* 앱 설명을 일부 변경하였습니다.\n\n
 	<b>v1.0.0</b> [14] <i>(14.07.01)</i>\n
 	* 이 프로젝트가 GPL 라이선스 하에 GitHub에 공개되었습니다.\n
@@ -169,7 +187,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 	* 구버전에서 업그레이드시 비밀번호를 암호화하도록 변경하였습니다.\n
 	* 아이디를 입력할 때 영어와 숫자만 사용할 수 있도록 변경하였습니다.\n
 	* 설정 창에서 아이디와 비밀번호를 모두 입력했을 경우 자동으로 자동 로그인이 활성화되도록 변경하였습니다.\n
-	* 파일 다운로드 오류를 수정하였습니다.\n
+	* 파일 다운로드시 발생하던 오류를 수정하였습니다.\n
 	* 파일명의 +를 모두 공백으로 치환하도록 변경하였습니다.\n
 	* 송죽 학사 로그인 API의 결과가 WebView에 출력되지 않도록 변경하였습니다.\n
 	* 액션들의 모드 중 withText를 삭제하였습니다.\n\n
@@ -179,19 +197,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 	* 로그인 여부 탐지 알고리즘을 개선하였습니다.\n
 	* 로그인 관리를 위해 번호가 있는 기기일 경우 이를 수집하는 기능을 추가하였습니다.\n
 	&#160;&#160;# 이 기능과 함께 \"휴대전화 상태 및 ID 읽기\" 권한이 추가되었습니다.\n
-	* 네비게이션 드로어에서 상벌점 통계 링크를 학교 홈페이지로 변경하였습니다.\n
+	* 내비게이션 드로어에서 상벌점 통계 링크를 학교 홈페이지로 변경하였습니다.\n
 	* 3월, 6월, 9월, 12월에 테마 배너가 제대로 표시되지 않던 오류를 수정하였습니다.\n
 	* 나눔 고딕 폰트 다운로드 시도시 오류로 처리하도록 변경하였습니다.\n\n
 	<b>v1.0.0 BETA</b> [12] <i>(14.04.22)</i>\n
 	* [Android 2.1+] 송죽 학사 시스템의 SMS 자동 인증 기능을 사용할 수 있도록 개선하였습니다.\n
 	&#160;&#160;# SPECIAL THANKS TO gs13067\n
-	* [Android 3.0+] 네비게이션 드로어를 추가하여 선생님, 학생 검색 및 상벌점 통계 바로가기 등을 제공합니다.\n
+	* [Android 3.0+] 내비게이션 드로어를 추가하여 선생님, 학생 검색 및 상벌점 통계 바로가기 등을 제공합니다.\n
 	&#160;&#160;# 왼쪽 끝에서 스와이프하거나 액션바가 보이는 중에 한 번 더 [MENU] 버튼을 눌러 열 수 있습니다.\n
 	* [Android 3.0+] 액션바를 [BACK] 버튼으로 숨길 수 있도록 변경하였습니다.\n
 	* [Android 3.0+] 액션바의 부제목에 현재 페이지의 제목을 표시하도록 변경하였습니다.\n
 	* [Android 3.0+] [MENU] 버튼이 없는 일부 기기에서 액션 오버플로 버튼이 보이도록 다시 변경하였습니다.\n
 	* 송죽 학사 로고에 맞추어 앱 아이콘을 변경하였습니다.\n
-	* 파일 다운로드 오류를 수정하였습니다.\n
+	* 파일 다운로드시 발생하던 오류를 수정하였습니다.\n
 	* HWP 파일 다운로드시 뷰어로 연결되지 않던 오류를 수정하였습니다.\n
 	* 발신 번호 필터 사용 설정이 추가되어 학교 번호에서 발신되지 않은 메시지도 인식할 수 있도록 변경하였습니다.\n
 	* 웹페이지 내에서 로그아웃하는 경우 앱이 종료되도록 변경하였습니다.\n
@@ -217,13 +235,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 	* 영어 언어 지원을 중단하였습니다.\n
 	* [Android 3.0+] [MENU] 버튼으로도 액션바를 볼 수 있도록 변경하였습니다.\n
 	* [Android 4.1+] 설정 화면 액션바의 뒤로가기 버튼에 관한 동작을 변경하였습니다.\n
-	* [Android 4.4+] WebView 변경 사항으로 인한 오류를 해결하였습니다.\n\n
+	* [Android 4.4+] WebView 변경 사항으로 인한 오류를 수정하였습니다.\n\n
 	<b>v0.8.1</b> [6] <i>(13.12.10)</i>\n
 	* 캐시를 사용하도록 다시 변경하였습니다.\n
 	* 앱 실행 도중 확대/축소 강제 사용 설정을 바꿔도 적용되도록 수정하였습니다.\n
 	* [Android 2.3-] getActionBar()에서 발생하던 오류를 수정하였습니다.\n\n
 	<b>v0.8.0</b> [5] <i>(13.12.10)</i>\n
-	* 웹페이지 로딩 속도를 대폭 개선시켰습니다.\n
+	* 웹페이지 로딩 속도를 대폭 개선하였습니다.\n
 	* [Android 3.0+] 송죽 학사에 헤더가 추가됨에 따라 액션바가 약 3초 후에 사라지도록 변경하였습니다.\n
 	&#160;&#160;# 다시 나타나게 하려면 헤더 위쪽 부분을 클릭해 주세요.\n
 	* 임시적으로 가로 보기를 제한하였습니다.\n\n

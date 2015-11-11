@@ -1,23 +1,14 @@
 <android.support.v4.widget.DrawerLayout
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
 	android:id="@+id/drawer_layout"
 	android:layout_width="match_parent"
-	android:layout_height="match_parent" >
+	android:layout_height="match_parent"
+	tools:context="kr.KENNYSOFT.Student.Student" >
 	<android.support.design.widget.CoordinatorLayout
 		android:layout_width="match_parent"
 		android:layout_height="match_parent" >
-		<android.support.v4.widget.NestedScrollView
-			android:id="@+id/nestedscrollview"
-			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			app:layout_behavior="@string/appbar_scrolling_view_behavior" >
-			<WebView
-				android:id="@+id/webview"
-				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				app:layout_behavior="@string/appbar_scrolling_view_behavior" />
-		</android.support.v4.widget.NestedScrollView>
 		<android.support.design.widget.AppBarLayout
 			android:layout_height="wrap_content"
 			android:layout_width="match_parent" >
@@ -26,7 +17,7 @@
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
 				android:background="?attr/colorPrimary"
-				app:layout_scrollFlags="scroll|enterAlways" >
+				app:layout_scrollFlags="scroll|enterAlways|snap" >
 				<LinearLayout
 					android:id="@+id/toolbar_information"
 					android:layout_width="match_parent"
@@ -38,16 +29,12 @@
 						android:layout_height="wrap_content"
 						android:text="@string/app_name"
 						android:textSize="@dimen/abc_text_size_title_material_toolbar"
-						android:ellipsize="marquee"
-						android:marqueeRepeatLimit="marquee_forever"
 						android:singleLine="true" />
 					<TextView
 						android:id="@+id/toolbar_subtitle"
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
 						android:textSize="@dimen/abc_text_size_subtitle_material_toolbar"
-						android:ellipsize="marquee"
-						android:marqueeRepeatLimit="marquee_forever"
 						android:singleLine="true"
 						android:visibility="gone" />
 				</LinearLayout>
@@ -56,12 +43,24 @@
 				android:id="@+id/progressbar"
 				android:layout_width="match_parent"
 				android:layout_height="3dp"
+				android:background="@color/progressbar_background"
 				android:progressDrawable="@drawable/progressbar"
 				style="?android:attr/progressBarStyleHorizontal" />
 		</android.support.design.widget.AppBarLayout>
+		<android.support.v4.widget.NestedScrollView
+			android:id="@+id/nestedscrollview"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:fillViewport="true"
+			app:layout_behavior="@string/appbar_scrolling_view_behavior" >
+			<WebView
+				android:id="@+id/webview"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent" />
+		</android.support.v4.widget.NestedScrollView>
 	</android.support.design.widget.CoordinatorLayout>
 	<android.support.v7.widget.RecyclerView
-		android:id="@+id/left_list"
+		android:id="@+id/drawer"
 		android:layout_width="300dp"
 		android:layout_height="wrap_content"
 		android:layout_gravity="start"

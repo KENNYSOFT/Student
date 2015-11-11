@@ -5,6 +5,9 @@
 	<color name="color_primary_dark">#388E3C</color>
 	<color name="color_accent">#00BCD4</color>
 	
+	<color name="progressbar_foreground">#00BCD4</color>
+	<color name="progressbar_background">#7F7F7F</color>
+	
 	<color name="menu_text">#000000</color>
 	
 	<color name="menu_bg_none">#FFFFFF</color>
@@ -25,6 +28,6 @@
 	<color name="gs_bg_yellow_active">#F6EAB0</color>
 	<color name="gs_bg_green_active">#BFE1B1</color>
 	
-	<color name="preference_fallback_accent_color">#ff80cbc4</color>
+	<color name="preference_fallback_accent_color">#80CBC4</color>
 
 </resources>

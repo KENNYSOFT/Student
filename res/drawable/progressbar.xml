@@ -6,8 +6,8 @@
 		<clip>
 			<shape>
 				<gradient
-					android:startColor="@color/color_accent"
-					android:endColor="@color/color_accent" />
+					android:startColor="@color/progressbar_foreground"
+					android:endColor="@color/progressbar_foreground" />
 			</shape>
 	 	</clip>
 	</item>
